@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Temporia Admin - Cổng Chấp Hành</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <link rel="stylesheet" href="css/admin-auth.css">
+     <link rel="stylesheet" href="css/trang-chu.css">
+     <style>
+    body.temporia-admin-bg {
+        display: flex;
+        flex-direction: column; 
+        min-height: 100vh; /* Đảm bảo body luôn cao bằng màn hình */
+        margin: 0;
+    }
+    
+    .auth-glass-card {
+        margin: 80px auto 40px auto; /* Khoảng cách phía trên 80px, tự động căn giữa trái phải, 40px phía dưới */
+        flex: 1; /* Giúp khối thẻ đẩy footer xuống dưới cùng */
+    }
+    
+    .temporia-global-footer {
+        width: 100%;
+        flex-shrink: 0; /* Đảm bảo footer không bị co lại */
+    }
+</style>
+</head>
+<body class="temporia-admin-bg">
+
+    <div class="auth-glass-card">
+        
+        <header class="auth-header">
+            <div class="auth-logo">
+                <i class="fa-solid fa-shield-halved"></i>
+            </div>
+            <h1>Temporia Admin</h1>
+            <p id="authSubtitle">Hệ thống quản trị dữ liệu lịch sử</p>
+        </header>
+
+        <nav class="segmented-control" id="segmentNav">
+            <div class="segment-slider" id="segmentSlider"></div>
+            <div class="segment-btn active" id="tabLogin" onclick="switchTab('login')">Đăng Nhập</div>
+            <div class="segment-btn" id="tabRegister" onclick="switchTab('register')">Đăng Ký</div>
+        </nav>
+
+        <main class="form-container">
+            
+            <form id="loginForm" class="auth-form" onsubmit="handleLogin(event)">
+                <div class="input-group">
+                    <i class="fa-solid fa-envelope"></i>
+                    <input type="email" class="apple-input" id="logEmail" placeholder="Email quản trị" required autocomplete="username">
+                </div>
+                <div class="input-group">
+                    <i class="fa-solid fa-lock"></i>
+                    <input type="password" class="apple-input" id="logPassword" placeholder="Mật khẩu" required autocomplete="current-password">
+                </div>
+                <button type="submit" class="apple-btn btn-login">
+                    <span>Vào Trạm Chỉ Huy</span>
+                </button>
+                <a href="javascript:void(0)" class="forgot-pass" onclick="switchTab('forgot')">Quên mật khẩu cấp quyền?</a>
+            </form>
+
+            <form id="registerForm" class="auth-form hidden" onsubmit="handleRegister(event)">
+                <div class="input-group">
+                    <i class="fa-solid fa-user-tie"></i>
+                    <input type="text" class="apple-input" id="regName" placeholder="Họ và tên tác giả" required>
+                </div>
+                <div class="input-group">
+                    <i class="fa-solid fa-at"></i>
+                    <input type="email" class="apple-input" id="regEmail" placeholder="Email đăng ký" required>
+                </div>
+                <div class="input-group">
+                    <i class="fa-solid fa-key"></i>
+                    <input type="password" class="apple-input" id="regPassword" placeholder="Mật khẩu (min 6 ký tự)" required minlength="6">
+                </div>
+                <div class="input-group">
+                    <i class="fa-solid fa-fingerprint"></i>
+                    <input type="text" class="apple-input" id="regSecret" placeholder="Mã Bí Mật (Secret Key)" required>
+                    <a href="javascript:void(0)" onclick="handleRequestSecret()" style="position: absolute; right: 15px; top: 16px; font-size: 0.8rem; color: #b91c1c; text-decoration: none; font-weight: 600;" id="btnGetSecret">Nhận mã</a>
+                </div>
+                <button type="submit" class="apple-btn btn-register">
+                    <span>Khởi Tạo Đặc Quyền</span>
+                </button>
+            </form>
+
+            <form id="verifyForm" class="auth-form hidden" onsubmit="handleVerifyReg(event)">
+                <div style="text-align: center; margin-bottom: 15px; cursor: pointer; color: #86868B; font-size: 0.9rem; font-weight: 500;" onclick="switchTab('register')">
+                    <i class="fas fa-arrow-left"></i> Đổi tài khoản khác
+                </div>
+                <div class="input-group">
+                    <i class="fa-solid fa-check-circle"></i>
+                    <input type="text" class="apple-input" id="regOtpInput" placeholder="Nhập mã OTP 6 số từ email" required maxlength="6">
+                </div>
+                <button type="submit" class="apple-btn btn-register">
+                    <span>Kích Hoạt Tài Khoản</span>
+                </button>
+            </form>
+
+            <form id="forgotForm" class="auth-form hidden" onsubmit="handleForgotPass(event)">
+                <div style="text-align: center; margin-bottom: 15px; cursor: pointer; color: #86868B; font-size: 0.9rem; font-weight: 500;" onclick="switchTab('login')">
+                    <i class="fas fa-arrow-left"></i> Quay lại đăng nhập
+                </div>
+                <div class="input-group">
+                    <i class="fa-solid fa-envelope"></i>
+                    <input type="email" class="apple-input" id="forgotEmail" placeholder="Nhập email quản trị" required>
+                </div>
+                <button type="submit" class="apple-btn">
+                    <span>Gửi Mã Khôi Phục</span>
+                </button>
+            </form>
+
+            <form id="resetForm" class="auth-form hidden" onsubmit="handleResetPass(event)">
+                <div style="text-align: center; margin-bottom: 15px; cursor: pointer; color: #86868B; font-size: 0.9rem; font-weight: 500;" onclick="switchTab('login')">
+                    <i class="fas fa-arrow-left"></i> Hủy và quay lại
+                </div>
+                <div class="input-group">
+                    <i class="fa-solid fa-key"></i>
+                    <input type="text" class="apple-input" id="resetOtp" placeholder="Mã OTP từ email" required maxlength="6">
+                </div>
+                <div class="input-group">
+                    <i class="fa-solid fa-lock"></i>
+                    <input type="password" class="apple-input" id="resetPassword" placeholder="Mật khẩu mới (min 6 ký tự)" required minlength="6">
+                </div>
+                <button type="submit" class="apple-btn btn-register">
+                    <span>Cập Nhật Mật Khẩu</span>
+                </button>
+            </form>
+
+        </main>
+
+    </div>
+
+    <footer class="temporia-global-footer">
+    
+    <div class="footer-bg-wrapper">
+        <img src="images/footer-bg.jpg" alt="Background" class="footer-bg-img" onerror="this.src='test/NPTx.png'">
+        <div class="footer-glass-overlay"></div>
+    </div>
+
+    <div class="container-full footer-content-container">
+        <div class="footer-main-grid">
+            
+            <div class="footer-col brand-col">
+                <div class="footer-logo">
+                    <span class="logo-text">Temporia</span>
+                </div>
+                <p class="footer-desc">
+                    Hành trình ngược dòng thời gian, chạm vào những trang sử thiêng liêng và hào hùng của dân tộc Việt Nam qua lăng kính công nghệ tương tác hiện đại.
+                </p>
+                <div class="footer-socials">
+                    <a href="#" class="f-social-btn" title="Facebook"><i class="fa-brands fa-facebook-f"></i></a>
+                    <a href="#" class="f-social-btn" title="YouTube"><i class="fa-brands fa-youtube"></i></a>
+                    <a href="#" class="f-social-btn" title="TikTok"><i class="fa-brands fa-tiktok"></i></a>
+                    <a href="#" class="f-social-btn" title="Instagram"><i class="fa-brands fa-instagram"></i></a>
+                </div>
+            </div>
+
+            <div class="footer-col links-col">
+                <div class="f-heading">
+                    <h4>Liên kết nhanh</h4>
+                </div>
+                <ul class="f-links-list">
+                    <li><a href="#">Trang chủ</a></li>
+                    <li><a href="#">Khám phá dòng sử</a></li>
+                    <li><a href="#">Hệ thống Quiz</a></li>
+                    <li><a href="#">Cộng đồng sử học</a></li>
+                    <li><a href="#">Về Đội ngũ phát triển</a></li>
+                </ul>
+            </div>
+
+            <div class="footer-col links-col">
+                <div class="f-heading">
+                    <h4>Tính năng</h4>
+                </div>
+                <ul class="f-links-list">
+                    <li><a href="#">Bản đồ thời gian 3D</a></li>
+                    <li><a href="#">Hồ sơ danh nhân</a></li>
+                    <li><a href="#">Bảng vàng leo Rank</a></li>
+                    <li><a href="#">Sưu tầm 200+ Huy hiệu</a></li>
+                    <li><a href="#">Hồ sơ thành tích cá nhân</a></li>
+                </ul>
+            </div>
+
+            <div class="footer-col contact-col">
+                <div class="f-heading">
+                    <h4>Liên hệ</h4>
+                </div>
+                <div class="f-contact-info">
+                    <div class="f-c-item">
+                        <div class="f-c-icon"><i class="fa-regular fa-envelope"></i></div>
+                        <div class="f-c-text">
+                            <span>Email</span>
+                            <strong>contact@solvia.vn</strong>
+                        </div>
+                    </div>
+                    <div class="f-c-item">
+                        <div class="f-c-icon"><i class="fa-solid fa-phone-flip"></i></div>
+                        <div class="f-c-text">
+                            <span>Điện thoại</span>
+                            <strong>+84 (236) 888-9999</strong>
+                        </div>
+                    </div>
+                    <div class="f-c-item">
+                        <div class="f-c-icon"><i class="fa-solid fa-location-dot"></i></div>
+                        <div class="f-c-text">
+                            <span>Địa chỉ</span>
+                            <strong>Ngũ Hành Sơn, Tp. Đà Nẵng</strong>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="footer-col sponsor-col">
+                <div class="f-heading">
+                    <h4>Đối tác tài trợ</h4>
+                </div>
+                <p class="sponsor-desc">Đồng hành cùng sự nghiệp bảo tồn và số hóa di sản Lịch sử Việt Nam.</p>
+                
+                <div class="sponsors-grid">
+                    <div class="sponsor-badge" title="Tập đoàn Công nghệ Solvia">
+                        <i class="fa-solid fa-microchip"></i> <span>Solvia</span>
+                    </div>
+                    <div class="sponsor-badge" title="25DS Studio - AI Data Analysis">
+                        <i class="fa-solid fa-database"></i> <span>25DS Studio</span>
+                    </div>
+                    <div class="sponsor-badge" title="Quỹ Phát triển Công nghệ & Giáo dục">
+                        <i class="fa-solid fa-graduation-cap"></i> <span>VKU</span>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <div class="footer-bottom-bar">
+            <div class="f-copyright">
+                <i class="fa-solid fa-seedling" style="color: #22c55e;"></i>
+                <span>© 2026 Temporia. Bản quyền phát triển thuộc về Solvia.</span>
+            </div>
+            
+            <div class="f-bottom-links">
+                <a href="#">Điều khoản sử dụng</a>
+                <a href="#">Chính sách bảo mật</a>
+                <span class="f-credits">Thiết kế bởi <strong>25DS Team</strong></span>
+            </div>
+        </div>
+
+    </div>
+</footer>
+
+    <script src="js/admin-auth.js"></script>
+</body>
+</html>

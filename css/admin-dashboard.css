@@ -1,0 +1,268 @@
+/* ========================================================================= */
+/* CSS ADMIN DASHBOARD - APPLE MINIMALIST THEME                              */
+/* ========================================================================= */
+
+:root {
+    --bg-app: #F5F5F7;
+    --bg-panel: #FFFFFF;
+    --text-main: #1D1D1F;
+    --text-dim: #86868B;
+    --border-light: #E5E5EA;
+    --primary-red: #b91c1c;
+    --apple-bezier: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+* { box-sizing: border-box; outline: none; }
+body { margin: 0; font-family: 'Be Vietnam Pro', sans-serif; background: var(--bg-app); color: var(--text-main); height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
+
+/* --- MENU TRÊN (TOPBAR) --- */
+.admin-topbar {
+    height: 60px; background: var(--bg-panel); border-bottom: 1px solid var(--border-light);
+    display: flex; justify-content: space-between; align-items: center; padding: 0 24px;
+    z-index: 100;
+}
+
+.topbar-left { display: flex; align-items: center; gap: 12px; }
+.brand-logo { background: #FEF2F2; color: var(--primary-red); width: 32px; height: 32px; border-radius: 8px; display: flex; justify-content: center; align-items: center; font-size: 14px; }
+.brand-name { font-weight: 700; font-size: 1.1rem; letter-spacing: -0.3px; }
+
+/* MODULE SWITCHER (NÚT GẠT MENU) */
+.module-switcher {
+    display: flex; background: var(--bg-app); padding: 4px; border-radius: 10px; position: relative; width: 240px;
+}
+.module-btn {
+    flex: 1; text-align: center; padding: 6px 0; font-size: 0.85rem; font-weight: 600; color: var(--text-dim); cursor: pointer; z-index: 2; transition: color 0.3s;
+}
+.module-btn.active { color: var(--text-main); }
+.module-slider {
+    position: absolute; top: 4px; left: 4px; width: calc(50% - 4px); height: calc(100% - 8px); background: #fff; border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.06); transition: transform 0.3s var(--apple-bezier); z-index: 1;
+}
+
+.admin-profile { display: flex; align-items: center; gap: 10px; font-weight: 600; font-size: 0.9rem; }
+.admin-profile img { width: 32px; height: 32px; border-radius: 50%; }
+
+/* --- KHÔNG GIAN LÀM VIỆC (WORKSPACE) --- */
+.admin-workspace { display: flex; height: calc(100vh - 60px); }
+
+/* --- CỘT TRÁI (SIDEBAR TREE) --- */
+.sidebar-tree {
+    width: 300px; background: var(--bg-app); border-right: 1px solid var(--border-light);
+    display: flex; flex-direction: column; overflow-y: auto;
+}
+.tree-header { padding: 20px; display: flex; justify-content: space-between; align-items: center; }
+.tree-header h3 { margin: 0; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; color: var(--text-dim); font-weight: 700; }
+
+.btn-icon { background: none; border: none; color: var(--primary-red); cursor: pointer; font-size: 1rem; transition: transform 0.2s; }
+.btn-icon:hover { transform: scale(1.1); }
+
+/* Item Thư mục */
+.tree-chapter { margin-bottom: 5px; }
+.chapter-header {
+    padding: 10px 20px; display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 0.9rem; cursor: pointer; transition: background 0.2s;
+}
+.chapter-header:hover { background: rgba(0,0,0,0.03); }
+.chapter-header .arrow { font-size: 0.7rem; color: var(--text-dim); transition: transform 0.3s; }
+.tree-chapter.expanded .arrow { transform: rotate(180deg); }
+.chapter-header .folder-icon { color: #3b82f6; }
+.btn-add-lesson { margin-left: auto; background: none; border: none; color: var(--text-dim); cursor: pointer; opacity: 0; transition: opacity 0.2s; }
+.chapter-header:hover .btn-add-lesson { opacity: 1; }
+.btn-add-lesson:hover { color: var(--primary-red); }
+
+/* Item Bài học */
+.chapter-lessons { display: none; padding-left: 35px; }
+.tree-chapter.expanded .chapter-lessons { display: block; }
+.lesson-item {
+    padding: 8px 20px 8px 10px; font-size: 0.85rem; color: var(--text-dim); cursor: pointer; display: flex; align-items: center; gap: 8px; border-radius: 6px; margin: 2px 10px 2px 0; transition: all 0.2s;
+}
+.lesson-item:hover { background: rgba(0,0,0,0.04); color: var(--text-main); }
+.lesson-item.active { background: #FEF2F2; color: var(--primary-red); font-weight: 600; }
+
+/* --- CỘT PHẢI (EDITOR PANEL) --- */
+.editor-panel { flex: 1; background: var(--bg-panel); display: flex; flex-direction: column; overflow-y: auto; }
+
+.editor-header {
+    padding: 24px 40px; border-bottom: 1px solid var(--border-light); display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; background: rgba(255,255,255,0.9); backdrop-filter: blur(10px); z-index: 10;
+}
+.breadcrumbs { font-size: 1.1rem; font-weight: 700; color: var(--text-main); display: flex; gap: 10px; align-items: center; }
+.breadcrumbs i { font-size: 0.8rem; color: var(--text-dim); }
+
+.header-actions { display: flex; gap: 12px; }
+.apple-btn-outline { padding: 10px 20px; border: 1px solid var(--border-light); background: #fff; border-radius: 8px; font-weight: 600; cursor: pointer; transition: 0.2s; color: var(--text-main); }
+.apple-btn-outline:hover { background: #fef2f2; color: var(--primary-red); border-color: #fca5a5; }
+.apple-btn-primary { padding: 10px 20px; border: none; background: var(--primary-red); color: #fff; border-radius: 8px; font-weight: 600; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 10px rgba(185,28,28,0.2); }
+.apple-btn-primary:hover { background: #991b1b; transform: translateY(-1px); }
+
+/* Vùng nhập liệu */
+.editor-body { padding: 40px; max-width: 1000px; margin: 0 auto; width: 100%; }
+
+.metadata-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 24px; }
+.full-width { grid-column: 1 / -1; }
+
+.input-group label { display: block; font-size: 0.85rem; font-weight: 600; color: var(--text-dim); margin-bottom: 8px; }
+.apple-input { width: 100%; padding: 12px 16px; background: var(--bg-app); border: 1px solid transparent; border-radius: 10px; font-family: inherit; font-size: 0.95rem; color: var(--text-main); transition: 0.2s; }
+.apple-input:focus { background: #fff; border-color: var(--primary-red); box-shadow: 0 0 0 3px rgba(185,28,28,0.1); }
+.textarea-recap { resize: vertical; min-height: 80px; }
+
+/* Upload box */
+.upload-box { height: 100px; border: 2px dashed #d1d5db; border-radius: 10px; display: flex; justify-content: center; align-items: center; cursor: pointer; background: var(--bg-app); transition: 0.2s; overflow: hidden; position: relative; }
+.upload-box:hover { border-color: var(--primary-red); background: #fef2f2; color: var(--primary-red); }
+.upload-placeholder { text-align: center; color: var(--text-dim); font-size: 0.85rem; }
+.upload-placeholder i { font-size: 1.5rem; margin-bottom: 5px; display: block; }
+#medalPreview { width: 100%; height: 100%; object-fit: contain; background: #fff; }
+
+.divider { border: none; border-top: 1px solid var(--border-light); margin: 30px 0; }
+
+/* RICH TEXT EDITOR (WYSIWYG) */
+.editor-wrapper { border: 1px solid var(--border-light); border-radius: 12px; overflow: hidden; }
+.editor-toolbar { background: var(--bg-app); padding: 10px 15px; border-bottom: 1px solid var(--border-light); display: flex; gap: 8px; align-items: center; }
+.tool-btn { background: none; border: none; padding: 6px 10px; border-radius: 6px; cursor: pointer; color: var(--text-main); transition: 0.2s; }
+.tool-btn:hover { background: #e5e7eb; color: var(--primary-red); }
+.tool-separator { width: 1px; height: 20px; background: #d1d5db; margin: 0 5px; }
+
+.color-picker-wrapper { position: relative; overflow: hidden; display: flex; align-items: center; }
+.color-picker { position: absolute; opacity: 0; cursor: pointer; width: 100%; height: 100%; left: 0; top: 0; }
+
+.rich-text-area { min-height: 400px; padding: 20px; font-size: 1rem; line-height: 1.6; color: var(--text-main); background: #fff; }
+.rich-text-area:focus { outline: none; }
+
+/* ========================================================================= */
+/* APPLE CUSTOM MODAL (CỬA SỔ POP-UP TẠO MỚI)                                */
+/* ========================================================================= */
+
+.apple-modal-overlay {
+    position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px);
+    display: flex; justify-content: center; align-items: center;
+    z-index: 999999;
+    opacity: 0; visibility: hidden;
+    transition: all 0.3s var(--apple-bezier);
+}
+
+.apple-modal-overlay.show {
+    opacity: 1; visibility: visible;
+}
+
+.apple-modal-card {
+    background: #ffffff;
+    width: 100%; max-width: 400px;
+    border-radius: 24px;
+    padding: 30px;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.15);
+    transform: translateY(20px) scale(0.95);
+    transition: all 0.4s var(--apple-bezier);
+}
+
+.apple-modal-overlay.show .apple-modal-card {
+    transform: translateY(0) scale(1);
+}
+
+.apple-modal-card h3 { margin: 0 0 5px 0; font-size: 1.3rem; font-weight: 700; color: var(--text-main); }
+.apple-modal-card p { margin: 0 0 20px 0; font-size: 0.9rem; color: var(--text-dim); }
+
+.modal-actions {
+    display: flex; gap: 10px; margin-top: 25px; justify-content: flex-end;
+}
+
+.modal-actions button {
+    padding: 12px 20px; font-size: 0.9rem; flex: 1; text-align: center;
+}
+
+/* ========================================================================= */
+/* BỐ CỤC 3 CỘT: TREE (240px) - EDITOR (Flex) - MAP PANEL (380px)            */
+/* ========================================================================= */
+
+.admin-workspace {
+    display: flex; flex-direction: row; height: calc(100vh - 60px);
+}
+
+.sidebar-tree { width: 240px; flex-shrink: 0; }
+.editor-panel { flex: 1; min-width: 400px; border-right: 1px solid var(--border-light); }
+
+/* --- CỘT MAP PANEL MỚI --- */
+.map-panel {
+    width: 380px; flex-shrink: 0; background: var(--bg-app);
+    display: flex; flex-direction: column; position: relative;
+}
+
+/* Lớp phủ Khóa Map */
+.map-blocked-overlay {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(245, 245, 247, 0.9); backdrop-filter: blur(4px);
+    z-index: 1000; display: flex; flex-direction: column; justify-content: center; align-items: center;
+    text-align: center; padding: 30px; transition: 0.3s;
+}
+.map-blocked-overlay i { font-size: 2rem; color: #a1a1aa; margin-bottom: 15px; }
+.map-blocked-overlay p { font-size: 0.9rem; color: var(--text-dim); font-weight: 500; line-height: 1.5; }
+.map-blocked-overlay.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
+
+/* Header & Controls Map */
+.map-panel-header { padding: 15px; background: #fff; border-bottom: 1px solid var(--border-light); }
+.map-status { font-size: 0.8rem; color: var(--text-dim); margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
+.status-dot { width: 8px; height: 8px; border-radius: 50%; background: #22c55e; }
+.map-controls { display: flex; gap: 10px; }
+.apple-input-sm {
+    flex: 1; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border-light);
+    font-family: inherit; font-size: 0.85rem; outline: none; background: var(--bg-app);
+}
+
+.admin-geo-map { flex: 1; width: 100%; background: #e5e5ea; z-index: 1; }
+.map-panel-footer { padding: 15px; font-size: 0.75rem; color: var(--text-dim); background: #fff; border-top: 1px solid var(--border-light); }
+
+/* --- NÚT VÀ HIỆU ỨNG GEO-KEYWORD TRONG EDITOR --- */
+.geo-btn { color: var(--primary-red) !important; font-weight: 600; background: #FEF2F2 !important; }
+.geo-btn:hover { background: #fee2e2 !important; }
+
+/* Keyword nằm trong bài đọc */
+.geo-keyword {
+    background-color: #fef08a; /* Vàng highlight */
+    border-bottom: 2px dashed var(--primary-red);
+    padding: 2px 6px; border-radius: 4px;
+    cursor: pointer; font-weight: 600; transition: 0.2s;
+}
+.geo-keyword:hover { background-color: #fde047; }
+/* Keyword đang được chọn để vẽ map */
+.geo-keyword.active-keyword {
+    background-color: var(--primary-red); color: white;
+    box-shadow: 0 0 0 3px rgba(185, 28, 28, 0.2);
+}
+
+/* ========================================================================= */
+/* BỐ CỤC 3 CỘT: CÂN ĐỐI LẠI THEO YÊU CẦU                                    */
+/* ========================================================================= */
+
+.admin-workspace {
+    display: flex; flex-direction: row; height: calc(100vh - 60px);
+}
+
+/* Cột 1: Cây thư mục (Giữ nguyên gọn gàng) */
+.sidebar-tree { width: 260px; flex-shrink: 0; }
+
+/* Cột 2: Editor - Canh giữa vùng soạn thảo để không bị bè ra hai bên */
+.editor-panel { 
+    flex: 1; 
+    border-right: 1px solid var(--border-light); 
+    background: #f9fafb; /* Nền xám nhạt để nổi bật vùng giấy trắng */
+}
+
+/* Bóp vùng nhập liệu (giấy) vào giữa, giới hạn kích thước đọc */
+.editor-body { 
+    max-width: 900px; 
+    margin: 0 auto; 
+    background: #ffffff;
+    box-shadow: 0 0 20px rgba(0,0,0,0.03);
+    padding: 40px;
+    min-height: 100%;
+}
+
+/* Cột 3: Bản đồ (Nới rộng ra để dễ khoanh vùng chi tiết) */
+.map-panel {
+    width: 450px; /* Tăng từ 380px lên 450px */
+    flex-shrink: 0; background: var(--bg-app);
+    display: flex; flex-direction: column; position: relative;
+}
+
+/* Hiệu ứng focus (nháy sáng) khi click chọn 1 hình vẽ trên bản đồ */
+.leaflet-interactive:focus {
+    outline: none;
+}

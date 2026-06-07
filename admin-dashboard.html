@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Temporia Admin - Quản lý Kịch bản & Sơ đồ</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/@geoman-io/leaflet-geoman-free@latest/dist/leaflet-geoman.css" />
+    
+    <link rel="stylesheet" href="css/admin-dashboard.css">
+    <link rel="stylesheet" href="css/admin-mindmap.css">
+    <link rel="stylesheet" href="css/admin-quiz.css">
+    <!-- Bổ sung đoạn CSS này vào trong thẻ <head> của admin-dashboard.html -->
+<style>
+    .module-switcher {
+        position: relative; /* Bắt buộc để làm khung chuẩn */
+        display: flex !important;
+        background: #f1f5f9;
+        padding: 6px;
+        border-radius: 12px;
+        min-width: 400px;
+        align-items: center;
+    }
+    .module-slider {
+        position: absolute;
+        top: 6px;
+        bottom: 6px;
+        left: 0; /* Khóa left ở 0, chỉ dùng transform để di chuyển */
+        width: 0; 
+        background: #fff;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        /* Hiệu ứng nảy (Bouncy) dùng GPU cực mượt */
+        transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), width 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); 
+        z-index: 1;
+    }
+    .module-btn {
+        position: relative;
+        z-index: 2; /* Nằm trên slider */
+        padding: 8px 16px !important;
+        white-space: nowrap !important;
+        flex: 1;
+        text-align: center;
+        cursor: pointer;
+        color: #64748b;
+        font-weight: 600;
+        background: transparent !important;
+        transition: color 0.3s;
+        border: none;
+    }
+    .module-btn.active {
+        color: #b91c1c;
+    }
+</style>
+
+</head>
+<body class="temporia-dashboard">
+
+    <nav class="admin-topbar">
+        <div class="topbar-left">
+            <div class="brand-logo"><i class="fa-solid fa-shield-halved"></i></div>
+            <span class="brand-name">Temporia Admin</span>
+        </div>
+        
+        <div class="module-switcher">
+            <div class="module-slider" id="moduleSlider"></div>
+            <div class="module-btn active" onclick="switchModule('roadmap', this)">
+                <i class="fa-solid fa-map-location-dot"></i> Lộ trình
+            </div>
+            <div class="module-btn" onclick="switchModule('mindmap', this)">
+                <i class="fa-solid fa-project-diagram"></i> Sơ đồ tư duy
+            </div>
+            <div class="module-btn" onclick="switchModule('quiz', this)">
+                <i class="fa-solid fa-clipboard-question"></i> Quiz
+            </div>
+        </div>
+
+        <div class="topbar-right">
+            <div class="admin-profile">
+                <img src="https://ui-avatars.com/api/?name=Admin&background=b91c1c&color=fff" alt="Avatar">
+                <span>Solvia Admin</span>
+            </div>
+        </div>
+    </nav>
+
+    <div class="admin-workspace">
+        
+        <div id="roadmapModule" class="module-section" style="display: flex; width: 100%; height: 100%;">
+            <aside class="sidebar-tree">
+                <div class="tree-header">
+                    <h3>Cấu trúc Lộ trình</h3>
+                    <button class="btn-icon" onclick="createNewChapter()" title="Thêm Chương mới">
+                        <i class="fa-solid fa-folder-plus"></i>
+                    </button>
+                </div>
+                <div class="tree-content" id="chapterList"></div>
+            </aside>
+
+            <main class="editor-panel">
+                <div class="editor-header">
+                    <div class="breadcrumbs">Chi tiết Bài học</div>
+                    <div class="header-actions">
+                        <button class="apple-btn-outline" style="color: #dc2626; border-color: #fca5a5;" onclick="deleteCurrentLesson()">
+                            <i class="fa-solid fa-trash"></i> Xóa bài
+                        </button>
+                        <button class="apple-btn-primary" onclick="saveLessonContent()"><i class="fa-solid fa-cloud-arrow-up"></i> Lưu thay đổi</button>
+                    </div>
+                </div>
+
+                <div class="editor-body">
+                    <div class="metadata-grid">
+                        <div class="input-group full-width">
+                            <label>Tên bài học / Mục</label>
+                            <input type="text" id="lessonTitle" class="apple-input" placeholder="Nhập tên bài học...">
+                        </div>
+                        
+                        <div class="input-group">
+                            <label>Thứ tự bài</label>
+                            <input type="number" id="lessonOrder" class="apple-input" placeholder="Số bài">
+                        </div>
+                        
+                        <div class="input-group">
+                            <label>Tổng số mục con</label>
+                            <input type="number" id="lessonSections" class="apple-input" placeholder="VD: 14">
+                        </div>
+                        
+                        <div class="input-group">
+                            <label>Độ khó</label>
+                            <select id="lessonDifficulty" class="apple-input">
+                                <option value="Dễ">Dễ</option>
+                                <option value="Trung bình" selected>Trung bình</option>
+                                <option value="Khó">Khó</option>
+                                <option value="Cực khó">Cực khó</option>
+                            </select>
+                        </div>
+
+                        <div class="input-group upload-group full-width">
+                            <label>Huy chương (Badge) - <span id="medalCountTxt" style="color: #b91c1c;">0</span> đã chọn</label>
+                            <div class="selected-medals-container" id="selectedMedalsContainer">
+                                <div class="add-medal-btn" onclick="openMedalLibrary()" title="Thêm huy chương">
+                                    <i class="fa-solid fa-plus"></i>
+                                </div>
+                            </div>
+                            <input type="hidden" id="selectedMedalUrl" value="[]">
+                        </div>
+                    </div>
+
+                    <hr class="divider">
+
+                    <div class="input-group full-width">
+                        <label>Tóm tắt phần trước (Recap)</label>
+                        <textarea class="apple-input textarea-recap" rows="3" placeholder="Nhập tóm tắt..."></textarea>
+                    </div>
+
+                    <div class="input-group full-width editor-wrapper">
+                        <label>Nội dung & Kịch bản Sa bàn</label>
+                        <div class="editor-toolbar">
+                            <button class="tool-btn" onmousedown="event.preventDefault(); formatText('bold')" title="In đậm"><i class="fa-solid fa-bold"></i></button>
+                            <button class="tool-btn" onmousedown="event.preventDefault(); formatText('italic')" title="In nghiêng"><i class="fa-solid fa-italic"></i></button>
+                            <button class="tool-btn" onmousedown="event.preventDefault(); formatText('underline')" title="Gạch chân"><i class="fa-solid fa-underline"></i></button>
+                            <div class="tool-separator"></div>
+                            <button class="tool-btn" onmousedown="event.preventDefault(); formatText('justifyLeft')" title="Căn trái"><i class="fa-solid fa-align-left"></i></button>
+                            <button class="tool-btn" onmousedown="event.preventDefault(); formatText('justifyCenter')" title="Căn giữa"><i class="fa-solid fa-align-center"></i></button>
+                            <button class="tool-btn" onmousedown="event.preventDefault(); formatText('justifyRight')" title="Căn phải"><i class="fa-solid fa-align-right"></i></button>
+                            <div class="tool-separator"></div>
+                            
+                            <div class="tool-btn color-picker-wrapper" title="Màu chữ" onmousedown="event.preventDefault();">
+                                <i class="fa-solid fa-palette"></i>
+                                <input type="color" class="color-picker" onchange="formatText('foreColor', this.value)">
+                            </div>
+                            
+                            <button class="tool-btn" onmousedown="event.preventDefault(); insertImage()" title="Chèn ảnh"><i class="fa-regular fa-image"></i></button>
+                            
+                            <div class="tool-separator"></div>
+                            
+                            <button class="tool-btn geo-btn" onmousedown="event.preventDefault(); markGeoKeyword()" title="Đánh dấu Keyword Kích hoạt Bản đồ">
+                                <i class="fa-solid fa-location-crosshairs"></i> Geo-Keyword
+                            </button>
+                            <button class="tool-btn char-btn" onmousedown="event.preventDefault(); markCharacterKeyword()" title="Đánh dấu Nhân vật">
+                                <i class="fa-solid fa-user-shield"></i> Nhân vật
+                            </button>
+                        </div>
+                        <div class="rich-text-area" contenteditable="true" id="mainContentEditor">
+                            <p>Vui lòng chọn bài học ở cột trái để chỉnh sửa...</p>
+                        </div>
+                    </div>
+                </div>
+            </main>
+
+            <aside class="map-panel">
+                <div class="map-blocked-overlay" id="mapOverlay">
+                    <i class="fa-solid fa-hand-pointer"></i>
+                    <p>Click vào một Geo-Keyword màu vàng trong bài đọc để mở khóa bản đồ.</p>
+                </div>
+                <div class="map-panel-header">
+                    <div class="map-status">
+                        <span class="status-dot"></span> Đang chỉnh sửa Keyword: <b id="lblActiveKeyword">None</b>
+                    </div>
+                    <div class="map-controls" style="flex-wrap: wrap;">
+                        <input type="text" id="geoRegionName" class="apple-input-sm" style="flex: 1; min-width: 120px;" placeholder="Tên cứ điểm / Tên núi..." onchange="syncMapData()">
+                        <input type="text" id="geoRegionNote" class="apple-input-sm" style="flex: 1; min-width: 120px;" placeholder="Mô tả ngắn (VD: Nơi Đế Minh gặp...)" onchange="syncMapData()">
+                        <select id="geoRegionColor" class="apple-input-sm" style="width: 100%; margin-top: 5px;" onchange="changeSelectedShapeColor()">
+                            <option value="#dc2626">Đỏ Đô (Địch / Mục tiêu)</option>
+                            <option value="#2563eb">Xanh Dương (Ta / Đồng minh)</option>
+                            <option value="#16a34a">Xanh Lá (Vùng an toàn)</option>
+                            <option value="#d97706">Cam (Cứ điểm tranh chấp)</option>
+                            <option value="#9333ea">Tím (Cứ điểm đặc biệt)</option>
+                            <option value="#475569">Xám (Khu vực vô hiệu)</option>
+                        </select>
+                        <button class="apple-btn-outline" style="width: 100%; padding: 8px; font-size: 0.85rem; margin-top: 5px; background: #b91c1c; color: #fff; border: none;" onclick="saveMapSettings()" title="Lưu thông tin vùng vẽ">
+                            <i class="fa-solid fa-check"></i> Lưu Tọa Độ
+                        </button>
+                    </div>
+                </div>
+                <div id="adminGeoMap" class="admin-geo-map"></div>
+                <div class="map-panel-footer">
+                    <p><i class="fa-solid fa-circle-info"></i> Dữ liệu vẽ tay sẽ tự động lưu vào Keyword hiện tại.</p>
+                </div>
+            </aside>
+        </div>
+
+
+        <div id="mindmapModule" class="module-section" style="display: none; width: 100%; height: 100%; flex-direction: column; padding: 20px; background: #f8fafc;">
+            
+            <div class="mindmap-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h2 style="font-size: 1.5rem; color: #1e293b; margin: 0;"><i class="fa-solid fa-project-diagram" style="color: #b91c1c;"></i> Biên tập Sơ đồ tư duy</h2>
+                <div class="mindmap-actions" style="display: flex; gap: 10px;">
+                    <button class="apple-btn-outline" onclick="addMindmapEra()" style="background: #fff;"><i class="fa-solid fa-plus"></i> Thêm Kỷ Nguyên (Gốc)</button>
+                    <button class="apple-btn-primary" onclick="saveMindmap()"><i class="fa-solid fa-cloud-arrow-up"></i> Lưu Sơ đồ</button>
+                </div>
+            </div>
+
+            <div class="mindmap-viewport" id="mindmapViewport">
+                <div class="zoom-controls">
+                    <button onclick="zoomMindmap(0.15)" title="Phóng to"><i class="fa-solid fa-plus"></i></button>
+                    <button onclick="resetZoomMindmap()" title="Mặc định"><i class="fa-solid fa-expand"></i></button>
+                    <button onclick="zoomMindmap(-0.15)" title="Thu nhỏ"><i class="fa-solid fa-minus"></i></button>
+                </div>
+                
+                <div class="mindmap-canvas" id="mindmapCanvas">
+                    <div class="timeline-trunk"></div>
+                    <svg class="mindmap-edges" id="mindmapEdges"></svg>
+                    <div class="mindmap-nodes-container" id="mindmapNodesContainer">
+                        </div>
+                </div>
+            </div>
+
+        </div>
+        
+        <div id="quizModule" class="module-section" style="display: none; width: 100%; height: 100%;">
+            <div class="quiz-workspace">
+                
+                <aside class="quiz-sidebar">
+                    <div class="quiz-sidebar-header">
+                        <div class="quiz-tabs">
+                            <div class="quiz-tab-btn active" id="tabQuizLesson" onclick="switchQuizMode('lesson')">Bài tập Lộ trình</div>
+                            <div class="quiz-tab-btn" id="tabQuizContest" onclick="switchQuizMode('contest')">Cuộc thi</div>
+                        </div>
+                        <button id="btnCreateContest" class="apple-btn-outline" style="width: 100%; display: none;" onclick="createNewContest()">
+                            <i class="fa-solid fa-plus"></i> Tạo Cuộc thi mới
+                        </button>
+                        <div class="input-group" style="margin-top: 15px; margin-bottom: 0;">
+                            <input type="text" class="apple-input-sm" placeholder="Tìm kiếm..." id="searchQuizList" oninput="filterQuizList()">
+                        </div>
+                    </div>
+                    <div class="quiz-list" id="quizSidebarList">
+                        </div>
+                </aside>
+
+                <main class="quiz-editor" id="quizEditorPanel" style="display: none;">
+                    <div class="quiz-editor-header">
+                        <div class="breadcrumbs" id="quizBreadcrumb"><i class="fa-solid fa-book-open"></i> Đang chỉnh sửa...</div>
+                        <button class="apple-btn-primary" onclick="saveQuizData()"><i class="fa-solid fa-cloud-arrow-up"></i> Lưu Bài Tập</button>
+                    </div>
+
+                    <div class="quiz-editor-body">
+                        <div class="quiz-meta-card">
+                            <div class="input-group full-width" style="margin-bottom: 20px;">
+                                <label id="lblQuizTitle">Tiêu đề bài tập</label>
+                                <input type="text" id="quizTitle" class="apple-input" placeholder="VD: Ôn tập Thời kỳ Hồng Bàng...">
+                            </div>
+
+                            <div class="meta-grid" id="quizMetaGrid">
+                                <div class="input-group">
+                                    <label>Số lượng câu hỏi</label>
+                                    <div style="display: flex; gap: 5px;">
+                                        <input type="number" id="quizQCount" class="apple-input" placeholder="VD: 10" min="1" value="5">
+                                        <button class="apple-btn-secondary" onclick="generateQuestionBlocks()" title="Tạo ô nhập"><i class="fa-solid fa-wand-magic-sparkles"></i></button>
+                                    </div>
+                                </div>
+                                <div class="input-group">
+                                    <label>Thời gian (Phút)</label>
+                                    <input type="number" id="quizTimeLimit" class="apple-input" placeholder="VD: 15" value="15">
+                                </div>
+                                <div class="input-group">
+                                    <label>Độ khó</label>
+                                    <select id="quizDifficulty" class="apple-input">
+                                        <option value="Dễ">Dễ</option>
+                                        <option value="Trung bình" selected>Trung bình</option>
+                                        <option value="Khó">Khó</option>
+                                    </select>
+                                </div>
+                                <div class="input-group contest-only" style="display: none;">
+                                    <label>Mở từ ngày</label>
+                                    <input type="datetime-local" id="quizStartDate" class="apple-input">
+                                </div>
+                                <div class="input-group contest-only" style="display: none;">
+                                    <label>Đóng vào ngày</label>
+                                    <input type="datetime-local" id="quizEndDate" class="apple-input">
+                                </div>
+                            </div>
+                        </div>
+
+                        <h3 style="margin-bottom: 15px; color: #1e293b;">Danh sách Câu hỏi</h3>
+                        <div class="question-blocks-container" id="questionsContainer">
+                            </div>
+                    </div>
+                </main>
+                
+                <div id="quizEmptyState" style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #94a3b8;">
+                    <i class="fa-solid fa-clipboard-list" style="font-size: 4rem; margin-bottom: 15px; opacity: 0.5;"></i>
+                    <h3>Chọn một mục bên trái để bắt đầu</h3>
+                </div>
+
+            </div>
+        </div>
+
+    </div>
+
+    <div class="apple-modal-overlay" id="actionModal">
+        <div class="apple-modal-card">
+            <h3 id="modalTitle">Tạo Mới</h3>
+            <p id="modalDesc">Vui lòng nhập thông tin.</p>
+            <div class="modal-form">
+                <div class="input-group">
+                    <label>Số thứ tự</label>
+                    <input type="number" id="modalInputNumber" class="apple-input" placeholder="Ví dụ: 1">
+                </div>
+                <div class="input-group">
+                    <label id="modalNameLabel">Tên</label>
+                    <input type="text" id="modalInputName" class="apple-input" placeholder="Nhập tên...">
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button class="apple-btn-outline" onclick="closeModal()">Hủy Bỏ</button>
+                <button class="apple-btn-primary" onclick="submitModal()" id="btnModalSubmit">Xác Nhận</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="apple-modal-overlay" id="medalLibraryModal">
+        <div class="apple-modal-card" style="max-width: 550px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <h3 style="margin: 0;">Thư viện Huy chương</h3>
+                <button class="btn-icon" onclick="closeMedalLibrary()"><i class="fa-solid fa-times"></i></button>
+            </div>
+            <div class="input-group" style="margin-bottom: 15px;">
+                <input type="text" id="medalSearchInput" class="apple-input" placeholder="Tìm tên nhân vật / chiến dịch..." oninput="filterMedals()">
+            </div>
+            <div class="medal-grid-list" id="medalGridList"></div>
+        </div>
+    </div>
+
+    <div class="apple-modal-overlay" id="characterModal">
+        <div class="apple-modal-card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <h3 style="margin: 0; color: #b91c1c;">Hồ sơ Nhân vật</h3>
+                <button class="btn-icon" onclick="closeCharacterModal()"><i class="fa-solid fa-times"></i></button>
+            </div>
+            <div class="modal-form">
+                <div class="input-group">
+                    <label>Tên nhân vật / Tước hiệu</label>
+                    <input type="text" id="charName" class="apple-input" placeholder="VD: Hưng Đạo Vương">
+                </div>
+                <div style="display: flex; gap: 15px;">
+                    <div class="input-group" style="flex: 1;">
+                        <label>Năm sinh - mất</label>
+                        <input type="text" id="charYears" class="apple-input" placeholder="VD: 1228 - 1300">
+                    </div>
+                    <div class="input-group" style="flex: 1;">
+                        <label>Quê quán</label>
+                        <input type="text" id="charHometown" class="apple-input" placeholder="VD: Tức Mặc">
+                    </div>
+                </div>
+                <div class="input-group">
+                    <label>Sự kiện / Đóng góp quan trọng</label>
+                    <textarea id="charInfo" class="apple-input" rows="3" placeholder="Ghi chú tóm tắt..."></textarea>
+                </div>
+                <div class="input-group upload-group">
+                    <label>Huy chương mở khóa</label>
+                    <div class="upload-box" onclick="openMedalLibrary('character')" style="height: 60px;">
+                        <img id="charMedalPreview" src="" alt="" style="display: none; height: 100%; object-fit: contain;">
+                        <div class="upload-placeholder" id="charMedalPlaceholder" style="display: flex; gap: 10px; align-items: center;">
+                            <i class="fa-solid fa-medal"></i> Bấm để chọn huy chương
+                        </div>
+                    </div>
+                    <input type="hidden" id="charSelectedMedalUrl" value="">
+                </div>
+            </div>
+            <div class="modal-actions" style="margin-top: 20px;">
+                <button class="apple-btn-outline" onclick="closeCharacterModal()">Hủy</button>
+                <button class="apple-btn-primary" onclick="saveCharacterData()">Lưu thông tin</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="apple-modal-overlay" id="adminManagementModal">
+        <div class="apple-modal-card" style="max-width: 600px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h3 style="margin: 0; color: #1e293b;"><i class="fa-solid fa-users-gear" style="color: #b91c1c;"></i> Quản lý Trạm Chỉ Huy</h3>
+                <button class="btn-icon" onclick="closeAdminManagement()"><i class="fa-solid fa-times"></i></button>
+            </div>
+            
+            <div style="max-height: 300px; overflow-y: auto; margin-bottom: 20px; border: 1px solid #e2e8f0; border-radius: 12px;">
+                <table style="width: 100%; border-collapse: collapse; text-align: left;">
+                    <thead style="background: #f8fafc; position: sticky; top: 0;">
+                        <tr>
+                            <th style="padding: 12px; font-size: 0.85rem; color: #64748b; border-bottom: 1px solid #e2e8f0;">Quản trị viên</th>
+                            <th style="padding: 12px; font-size: 0.85rem; color: #64748b; border-bottom: 1px solid #e2e8f0;">Chức vụ</th>
+                            <th style="padding: 12px; font-size: 0.85rem; color: #64748b; border-bottom: 1px solid #e2e8f0;">Tổng giờ Online</th>
+                        </tr>
+                    </thead>
+                    <tbody id="adminTableBody">
+                        <tr style="border-bottom: 1px solid #f1f5f9;">
+                            <td style="padding: 12px; font-weight: 600; color: #1e293b; display: flex; align-items: center; gap: 10px;">
+                                <img src="https://ui-avatars.com/api/?name=Thiên+Sinh&background=b91c1c&color=fff" style="width: 28px; height: 28px; border-radius: 50%;"> 
+                                Thiên Sinh
+                            </td>
+                            <td style="padding: 12px; font-size: 0.9rem; color: #3b82f6; font-weight: 600;">Tổng Tư Lệnh</td>
+                            <td style="padding: 12px; font-size: 0.9rem; color: #10b981; font-weight: bold;">142 giờ</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 12px; font-weight: 600; color: #1e293b; display: flex; align-items: center; gap: 10px;">
+                                <img src="https://ui-avatars.com/api/?name=Temporia&background=64748b&color=fff" style="width: 28px; height: 28px; border-radius: 50%;"> 
+                                Temporia Bot
+                            </td>
+                            <td style="padding: 12px; font-size: 0.9rem; color: #64748b; font-weight: 600;">Trợ lý</td>
+                            <td style="padding: 12px; font-size: 0.9rem; color: #10b981; font-weight: bold;">Liên tục</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div style="display: flex; gap: 10px;">
+                <button class="apple-btn-outline" style="flex: 1;" onclick="closeAdminManagement()">Đóng</button>
+                <button class="apple-btn-primary" style="flex: 1; background: #dc2626;" onclick="adminLogout()">
+                    <i class="fa-solid fa-right-from-bracket"></i> Đăng xuất ngay
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="adminToast" class="admin-toast-notification">
+        <i class="fa-solid fa-circle-check" id="toastIcon"></i>
+        <span id="toastMessage">Thành công!</span>
+    </div>
+   
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/@geoman-io/leaflet-geoman-free@latest/dist/leaflet-geoman.min.js"></script>
+    
+    <script src="js/admin-dashboard.js"></script>
+    
+    <script src="js/admin-mindmap.js"></script>
+    
+  <script>
+    // Hàm tự động tính toán bằng tọa độ thực tế
+    function updateSliderPosition(activeBtn) {
+        const slider = document.getElementById('moduleSlider');
+        const switcher = document.querySelector('.module-switcher');
+        if(slider && activeBtn && switcher) {
+            const switcherRect = switcher.getBoundingClientRect();
+            const btnRect = activeBtn.getBoundingClientRect();
+            const translateX = btnRect.left - switcherRect.left;
+            slider.style.width = btnRect.width + 'px';
+            slider.style.transform = `translateX(${translateX}px)`;
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        setTimeout(() => {
+            const activeBtn = document.querySelector('.module-btn.active');
+            if (activeBtn) updateSliderPosition(activeBtn);
+        }, 150);
+    });
+
+    // Hàm chuyển đổi các Tab
+    window.switchModule = function(module, btnElement) {
+        document.querySelectorAll('.module-btn').forEach(btn => btn.classList.remove('active'));
+        btnElement.classList.add('active');
+        updateSliderPosition(btnElement);
+
+        // ĐÂY LÀ ĐOẠN VÁ LỖI VỠ GIAO DIỆN: Phải ẩn tất cả 3 tab đi trước khi bật 1 tab lên
+        document.getElementById('roadmapModule').style.display = 'none';
+        document.getElementById('mindmapModule').style.display = 'none';
+        document.getElementById('quizModule').style.display = 'none'; 
+
+        if (module === 'roadmap') {
+            document.getElementById('roadmapModule').style.display = 'flex';
+            if (typeof adminMapInstance !== 'undefined' && adminMapInstance) adminMapInstance.invalidateSize();
+        }  else if (module === 'mindmap') {
+            document.getElementById('mindmapModule').style.display = 'flex';
+            if (typeof resetZoomMindmap === 'function') resetZoomMindmap();
+        } else if (module === 'quiz') {
+            document.getElementById('quizModule').style.display = 'flex';
+            
+            // ĐÂY LÀ ĐOẠN VÁ LỖI: Tự động kích hoạt load dữ liệu lần đầu tiên bấm vào Tab
+            if (!window.isQuizInitialized) {
+                if (typeof switchQuizMode === 'function') switchQuizMode('lesson');
+                window.isQuizInitialized = true;
+            }
+        }
+    }
+</script>
+    <script src="js/admin-quiz.js"></script>
+</body>
+</html>

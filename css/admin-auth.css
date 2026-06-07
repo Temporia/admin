@@ -1,0 +1,168 @@
+/* ========================================================================= */
+/* APPLE MINIMALIST WHITE THEME - TEMPORIA ADMIN                             */
+/* ========================================================================= */
+
+:root {
+    --bg-body: #F5F5F7;      /* Xám nhạt đặc trưng của Apple */
+    --bg-card: #FFFFFF;      /* Trắng tinh khiết */
+    --text-main: #1D1D1F;    /* Đen xám cực sâu */
+    --text-dim: #86868B;     /* Xám phụ đề */
+    --border-light: #E5E5EA; /* Viền xám mờ */
+    --input-bg: #F5F5F7;     /* Nền input chìm */
+    --primary-red: #b91c1c;  /* Đỏ Temporia */
+    --apple-bezier: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+* { box-sizing: border-box; }
+
+body.temporia-admin-bg {
+    margin: 0; padding: 0;
+    font-family: 'Be Vietnam Pro', -apple-system, BlinkMacSystemFont, sans-serif;
+    min-height: 100vh;
+    display: flex; justify-content: center; align-items: center;
+    background: var(--bg-body); /* Đổi sang nền xám tĩnh, không đổi màu */
+}
+
+/* THẺ TRẮNG ĐƠN GIẢN (SOLID WHITE CARD) */
+.auth-glass-card {
+    width: 100%; max-width: 400px; /* Thu gọn lại cho thanh thoát */
+    background: var(--bg-card);
+    border-radius: 28px;
+    /* Bỏ viền dày, dùng viền siêu mảnh và bóng đổ cực nhẹ */
+    border: 1px solid rgba(0, 0, 0, 0.04);
+    box-shadow: 0 24px 48px rgba(0, 0, 0, 0.04), 0 4px 12px rgba(0, 0, 0, 0.02);
+    padding: 40px;
+    opacity: 0; transform: translateY(20px);
+    animation: authEntry 0.6s var(--apple-bezier) forwards;
+}
+
+@keyframes authEntry {
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.auth-header { text-align: center; margin-bottom: 30px; }
+
+/* LOGO TỐI GIẢN */
+.auth-logo {
+    width: 56px; height: 56px;
+    background: #FEF2F2; /* Nền đỏ cực nhạt */
+    color: var(--primary-red);
+    border: 1px solid #FEE2E2;
+    border-radius: 16px;
+    display: flex; justify-content: center; align-items: center;
+    margin: 0 auto 16px;
+    font-size: 24px;
+}
+
+.auth-header h1 { 
+    margin: 0; font-size: 1.5rem; font-weight: 700; 
+    color: var(--text-main); letter-spacing: -0.5px; 
+}
+.auth-header p { 
+    margin: 6px 0 0; font-size: 0.9rem; 
+    color: var(--text-dim); font-weight: 500; 
+}
+
+/* NÚT GẠT (SEGMENTED CONTROL CHUẨN IOS) */
+.segmented-control {
+    display: flex; position: relative;
+    background: var(--input-bg);
+    border-radius: 12px; padding: 3px;
+    margin-bottom: 30px;
+}
+
+.segment-btn {
+    flex: 1; text-align: center; padding: 9px 0;
+    font-size: 0.85rem; font-weight: 600; color: var(--text-dim);
+    cursor: pointer; z-index: 2; transition: color 0.3s;
+}
+
+.segment-btn.active { color: var(--text-main); }
+
+.segment-slider {
+    position: absolute; top: 3px; left: 3px;
+    width: calc(50% - 3px); height: calc(100% - 6px);
+    background: #ffffff; border-radius: 9px;
+    /* Bóng đổ của slider gạt giống hệt màn hình cài đặt iPhone */
+    box-shadow: 0 3px 8px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+    transition: transform 0.4s var(--apple-bezier);
+    z-index: 1;
+}
+
+/* FORM LAYOUT */
+.form-container { position: relative; overflow: hidden; min-height: 250px; }
+
+.auth-form { width: 100%; transition: all 0.5s var(--apple-bezier); }
+
+.auth-form.hidden {
+    position: absolute; top: 0; left: 0;
+    opacity: 0; visibility: hidden;
+    transform: scale(0.98) translateX(20px); pointer-events: none;
+}
+
+/* Ô NHẬP LIỆU (INPUT) SẠCH SẼ */
+.input-group { position: relative; margin-bottom: 16px; }
+
+.input-group i {
+    position: absolute; 
+    top: 50%; 
+    left: 16px; 
+    transform: translateY(-50%);
+    color: #A1A1AA; 
+    font-size: 1rem; 
+    transition: color 0.2s;
+    z-index: 10; /* Đảm bảo icon luôn nổi lên trên input */
+}
+
+.apple-input {
+    width: 100%; 
+    box-sizing: border-box;
+    background: var(--input-bg);
+    border: 1px solid transparent; 
+    border-radius: 12px;
+    
+    /* Cập nhật dòng này: Tăng padding-left lên 48px-50px và thêm !important */
+    padding: 15px 15px 15px 50px !important; 
+    
+    font-family: inherit; 
+    font-size: 0.95rem; 
+    font-weight: 500;
+    color: var(--text-main); 
+    transition: all 0.2s;
+}
+
+/* Khi bấm vào ô nhập liệu: Viền đỏ mỏng, nền trắng */
+.apple-input:focus {
+    outline: none; background: #ffffff;
+    border-color: var(--primary-red);
+    box-shadow: 0 0 0 3px rgba(185, 28, 28, 0.08);
+}
+
+.apple-input:focus + i { color: var(--primary-red); }
+.apple-input::placeholder { color: #A1A1AA; font-weight: 400; }
+
+/* NÚT BẤM CHÍNH (GỌN GÀNG, KHÔNG GRADIENT LÒE LOẸT) */
+.apple-btn {
+    width: 100%; padding: 15px; margin-top: 10px;
+    background: var(--primary-red); color: white;
+    border: none; border-radius: 12px;
+    font-family: inherit; font-size: 0.95rem; font-weight: 600;
+    cursor: pointer; transition: all 0.2s;
+}
+
+.apple-btn:hover { background: var(--primary-hover); transform: translateY(-1px); box-shadow: 0 8px 16px rgba(185, 28, 28, 0.15); }
+.apple-btn:active { transform: translateY(1px); box-shadow: none; }
+
+.forgot-pass {
+    display: block; text-align: center; margin-top: 20px;
+    font-size: 0.85rem; color: var(--text-dim); text-decoration: none; font-weight: 500;
+}
+.forgot-pass:hover { color: var(--text-main); }
+
+/* Fix lỗi hover nút mất chữ */
+.segment-btn:hover { color: var(--primary-red); }
+.apple-btn:hover { color: #000000 !important; }
+/* Thêm .input-group ra đằng trước để tăng độ ưu tiên tuyệt đối */
+.input-group .apple-input {
+    padding: 15px 15px 15px 48px !important; 
+}
