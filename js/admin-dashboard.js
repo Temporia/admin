@@ -779,6 +779,6 @@ function adminLogout() {
     if(confirm("Bạn có chắc chắn muốn rời khỏi Trạm Chỉ Huy?")) {
         localStorage.removeItem('admin_session');
         localStorage.removeItem('admin_user');
-        window.location.href = 'admin.html';
+        window.location.href = 'index.html';
     }
 }
