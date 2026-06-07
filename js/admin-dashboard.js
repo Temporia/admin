@@ -10,7 +10,7 @@ const adminUserStr = localStorage.getItem('admin_user');
 
 // Nếu không có phiên đăng nhập hợp lệ, lập tức đá văng về trang Auth
 if (adminSession !== 'active' || !adminUserStr) {
-    window.location.href = 'admin.html';
+    window.location.href = 'index.html';
 }
 
 const API_BASE_URL = 'https://temporia-api.onrender.com/api';
