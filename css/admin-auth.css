@@ -161,7 +161,7 @@ body.temporia-admin-bg {
 
 /* Fix lỗi hover nút mất chữ */
 .segment-btn:hover { color: var(--primary-red); }
-.apple-btn:hover { color: #ffffff !important; }
+.apple-btn:hover { color: #000000 !important; }
 /* Thêm .input-group ra đằng trước để tăng độ ưu tiên tuyệt đối */
 .input-group .apple-input {
     padding: 15px 15px 15px 48px !important; 
