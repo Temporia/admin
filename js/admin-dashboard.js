@@ -10,7 +10,7 @@ const adminUserStr = localStorage.getItem('admin_user');
 
 // Nếu không có phiên đăng nhập hợp lệ, lập tức đá văng về trang Auth
 if (adminSession !== 'active' || !adminUserStr) {
-    window.location.href = 'index.html';
+    window.location.href = 'admin.html';
 }
 
 const API_BASE_URL = 'https://temporia-api.onrender.com/api';
@@ -368,30 +368,48 @@ async function deleteChapter(event, chapterId) {
 ========================================== */
 let currentModalMode = ''; 
 let targetChapterIdForLesson = null; 
+let editTargetId = null;
 
-function openModal(mode, chapterId = null, chapterName = '') {
+function openModal(mode, chapterId = null, chapterName = '', orderNum = '') {
     currentModalMode = mode;
     targetChapterIdForLesson = chapterId;
+    editTargetId = chapterId; // Lưu ID để sửa
 
     const modal = document.getElementById('actionModal');
-    document.getElementById('modalInputNumber').value = '';
-    document.getElementById('modalInputName').value = '';
-
-    if (mode === 'chapter') {
-        document.getElementById('modalTitle').innerText = 'Tạo Chương Mới';
-        document.getElementById('modalDesc').innerText = 'Nhập thông tin lộ trình.';
+    
+    // Nếu là chế độ 'edit_chapter', điền sẵn tên và số thứ tự cũ vào ô nhập
+    if (mode === 'edit_chapter') {
+        document.getElementById('modalInputNumber').value = orderNum;
+        document.getElementById('modalInputName').value = chapterName;
+        document.getElementById('modalTitle').innerText = 'Sửa Chương';
+        document.getElementById('modalDesc').innerText = 'Cập nhật thông tin lộ trình.';
     } else {
-        document.getElementById('modalTitle').innerText = 'Tạo Bài Học Mới';
-        document.getElementById('modalDesc').innerText = `Thuộc: ${chapterName}`;
+        // Chế độ tạo mới: Xóa trống ô nhập
+        document.getElementById('modalInputNumber').value = '';
+        document.getElementById('modalInputName').value = '';
+        
+        if (mode === 'chapter') {
+            document.getElementById('modalTitle').innerText = 'Tạo Chương Mới';
+            document.getElementById('modalDesc').innerText = 'Nhập thông tin lộ trình.';
+        } else {
+            document.getElementById('modalTitle').innerText = 'Tạo Bài Học Mới';
+            document.getElementById('modalDesc').innerText = `Thuộc: ${chapterName}`;
+        }
     }
+    
     modal.classList.add('show');
 }
-
 function closeModal() { document.getElementById('actionModal').classList.remove('show'); }
 function createNewChapter() { openModal('chapter'); }
 function createNewLesson(event, chapterId, chapterName) {
     event.stopPropagation();
     openModal('lesson', chapterId, chapterName);
+}
+
+// Hàm mới: Bắt sự kiện khi bấm nút Cây bút
+function editChapterName(event, chapterId, chapterName, orderNum) {
+    event.stopPropagation();
+    openModal('edit_chapter', chapterId, chapterName, orderNum);
 }
 
 async function submitModal() {
@@ -400,7 +418,7 @@ async function submitModal() {
     if (!inputNum || !inputName) return showAdminToast("Vui lòng điền đủ thông tin!", "error");
 
     const btnSubmit = document.getElementById('btnModalSubmit');
-    btnSubmit.innerHTML = 'Đang tạo...'; btnSubmit.disabled = true;
+    btnSubmit.innerHTML = 'Đang xử lý...'; btnSubmit.disabled = true;
 
     try {
         if (currentModalMode === 'chapter') {
@@ -409,6 +427,15 @@ async function submitModal() {
                 body: JSON.stringify({ name: inputName, order_num: parseInt(inputNum) })
             });
             showAdminToast("Tạo Chương mới thành công!");
+            
+        } else if (currentModalMode === 'edit_chapter') {
+            // GỌI API SỬA CHƯƠNG (PHƯƠNG THỨC PUT)
+            await fetch(`${API_BASE_URL}/chapters/${editTargetId}`, {
+                method: 'PUT', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: inputName, order_num: parseInt(inputNum) })
+            });
+            showAdminToast("Đã cập nhật thông tin Chương!");
+            
         } else {
             await fetch(`${API_BASE_URL}/lessons`, {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -416,7 +443,7 @@ async function submitModal() {
             });
             showAdminToast("Tạo Bài học mới thành công!");
         }
-        closeModal(); loadRoadmapTree();
+        closeModal(); loadRoadmapTree(); // Cập nhật lại danh sách cột trái
     } catch (e) { showAdminToast("Lỗi kết nối API!", "error"); } 
     finally { btnSubmit.innerHTML = 'Xác Nhận'; btnSubmit.disabled = false; }
 }
@@ -641,12 +668,7 @@ function markCharacterKeyword() {
     charScriptData[uniqueId] = { name: text, years: '', hometown: '', info: '', medalUrl: '' };
 }
 
-function initEditorClickListener() {
-    document.getElementById('mainContentEditor').addEventListener('click', (e) => {
-        if (e.target.classList.contains('geo-keyword')) activateGeoKeyword(e.target);
-        if (e.target.classList.contains('char-keyword')) activateCharKeyword(e.target);
-    });
-}
+
 
 function activateCharKeyword(element) {
     currentActiveCharId = element.getAttribute('data-char-id');
@@ -780,14 +802,201 @@ function adminLogout() {
     if(confirm("Bạn có chắc chắn muốn rời khỏi Trạm Chỉ Huy?")) {
         localStorage.removeItem('admin_session');
         localStorage.removeItem('admin_user');
-        window.location.href = 'index.html';
+        window.location.href = 'admin.html';
+    }
+}
+
+/* ========================================================================= */
+/* ENGINE QUẢN LÝ POSTCARD VIDEO (TÍCH HỢP TRỰC TIẾP)                        */
+/* ========================================================================= */
+let pcActiveLessonId = null;
+
+// Khởi tạo Sidebar bằng dữ liệu từ API Roadmap
+async function initPostcardModule() {
+    const listDiv = document.getElementById('pcLessonList');
+    try {
+        const res = await fetch(`${API_BASE_URL}/roadmap`);
+        const data = await res.json();
+        
+        if (data.status === 'success') {
+            listDiv.innerHTML = '';
+            data.chapters.forEach(chapter => {
+                let lessonsHTML = '';
+                chapter.lessons.forEach(lesson => {
+                    lessonsHTML += `<div class="lesson-item pc-item" id="pc_item_${lesson.id}" onclick="selectPostcardLesson(${lesson.id}, '${lesson.title}', this)">
+                        <i class="fa-solid fa-file-video"></i> ${lesson.title}
+                    </div>`;
+                });
+                listDiv.innerHTML += `
+                    <div class="tree-chapter expanded">
+                        <div class="chapter-header" onclick="toggleChapter(this)">
+                            <i class="fa-solid fa-chevron-down arrow"></i>
+                            <i class="fa-solid fa-folder folder-icon"></i>
+                            <span>${chapter.name}</span>
+                        </div>
+                        <div class="chapter-lessons">${lessonsHTML}</div>
+                    </div>`;
+            });
+        }
+    } catch (e) {
+        listDiv.innerHTML = '<div style="padding:20px; color:#dc2626; text-align:center;">Lỗi tải dữ liệu Roadmap!</div>';
+    }
+}
+// Bấm vào 1 bài học trên Sidebar
+async function selectPostcardLesson(lessonId, title, element) {
+    document.querySelectorAll('.pc-item').forEach(el => el.classList.remove('active'));
+    element.classList.add('active');
+    pcActiveLessonId = lessonId;
+
+    document.getElementById('pcBreadcrumb').innerHTML = `<i class="fa-solid fa-photo-film"></i> Bài: ${title}`;
+    document.getElementById('pcEmptyState').style.display = 'none';
+    document.getElementById('pcEditorContent').style.display = 'block';
+    document.getElementById('btnSavePostcard').disabled = false;
+    document.getElementById('pcSyncedContent').value = "Đang đồng bộ dữ liệu...";
+
+    // RESET Form
+    document.getElementById('pcFileSelector').value = "";
+    document.getElementById('pcMediaFilename').value = "";
+    document.getElementById('pcImageUrl').value = "";
+    triggerPCImage("");
+    triggerPCMedia("");
+
+    try {
+        const resLesson = await fetch(`${API_BASE_URL}/lessons/${lessonId}`);
+        if(resLesson.ok) {
+            const lessonData = await resLesson.json();
+            document.getElementById('pcSyncedContent').value = lessonData.recap_text || "Bài học này chưa có Tóm tắt (Recap).";
+        }
+
+        const resPc = await fetch(`${API_BASE_URL}/postcard/${lessonId}`);
+        if(resPc.ok) {
+            const pcData = await resPc.json();
+            if(pcData.status === 'success') {
+                // Hiển thị dữ liệu cũ nếu đã từng lưu
+                if(pcData.data.video_filename) {
+                    document.getElementById('pcMediaFilename').value = pcData.data.video_filename;
+                    triggerPCMedia(pcData.data.video_filename);
+                }
+                if(pcData.data.image_url) {
+                    document.getElementById('pcImageUrl').value = pcData.data.image_url;
+                    triggerPCImage(pcData.data.image_url);
+                }
+            }
+        }
+    } catch(e) { console.error("Lỗi lấy dữ liệu Postcard:", e); }
+}
+
+// Xử lý khi chọn file từ máy tính
+// Xử lý khi chọn file từ máy tính (ĐÃ FIX: Thêm thông báo nhắc nhở Upload)
+function handlePCFileSelect(input) {
+    if (input.files && input.files[0]) {
+        const file = input.files[0];
+        
+        // Xác định là video hay audio dựa trên đuôi file
+        const isVideo = file.name.toLowerCase().endsWith('.mp4');
+        const prefix = isVideo ? 'videos/' : 'audios/';
+        const finalPath = prefix + file.name;
+        
+        // Ghi đường dẫn vào ô Input để lưu vào Database
+        document.getElementById('pcMediaFilename').value = finalPath;
+        
+        // Tạo đường dẫn ảo để phát ngay lập tức
+        const localPreviewUrl = URL.createObjectURL(file);
+        triggerPCMedia(finalPath, localPreviewUrl);
+
+        // BỔ SUNG: Bắn thông báo nhắc Admin phải tự copy file vào source code
+        if (typeof showAdminToast === 'function') {
+            showAdminToast(`Lưu ý: Bạn phải tự copy file "${file.name}" bỏ vào thư mục "${prefix}" của code nhé!`);
+        }
+    }
+}
+// Cập nhật trình phát Ảnh
+function triggerPCImage(url) {
+    const preview = document.getElementById('pcImagePreview');
+    const placeholder = document.getElementById('pcImagePlaceholder');
+    if (url && url.trim() !== '') {
+        preview.src = url;
+        preview.style.display = 'block';
+        placeholder.style.display = 'none';
+    } else {
+        preview.src = '';
+        preview.style.display = 'none';
+        placeholder.style.display = 'block';
+    }
+}
+
+// Cập nhật trình phát MP3 / MP4
+function triggerPCMedia(dbPath, localPreviewUrl = null) {
+    const audioPlayer = document.getElementById('pcAudioPlayer');
+    const videoPlayer = document.getElementById('pcVideoPlayer');
+    const placeholder = document.getElementById('pcMediaPlaceholder');
+    
+    // Tắt và ẩn cả 2 trình phát trước khi nạp bài mới
+    audioPlayer.style.display = 'none'; 
+    videoPlayer.style.display = 'none';
+    audioPlayer.pause(); 
+    videoPlayer.pause();
+
+    if (dbPath && dbPath.trim() !== "") {
+        placeholder.style.display = 'none';
+        
+        // Ưu tiên phát link ảo (nếu vừa chọn file từ máy), ngược lại thì phát link từ DB
+        const playUrl = localPreviewUrl ? localPreviewUrl : dbPath;
+        
+        if (dbPath.toLowerCase().endsWith('.mp4')) {
+            videoPlayer.src = playUrl;
+            videoPlayer.style.display = 'block';
+            videoPlayer.load(); // BẮT BUỘC PHẢI LOAD ĐỂ NẠP FILE MỚI
+        } else {
+            audioPlayer.src = playUrl;
+            audioPlayer.style.display = 'block';
+            audioPlayer.load(); // BẮT BUỘC PHẢI LOAD ĐỂ NẠP FILE MỚI
+        }
+    } else {
+        placeholder.style.display = 'block';
+    }
+}
+
+// Lưu Database
+async function savePostcardConfig() {
+    if (!pcActiveLessonId) return;
+    
+    const mediaFilename = document.getElementById('pcMediaFilename').value;
+    const imageUrl = document.getElementById('pcImageUrl').value;
+    
+    const btn = document.getElementById('btnSavePostcard');
+    const originalHTML = btn.innerHTML;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang lưu...';
+    btn.disabled = true;
+
+    try {
+        const res = await fetch(`${API_BASE_URL}/postcard`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                lesson_id: String(pcActiveLessonId), 
+                video_filename: mediaFilename,
+                image_url: imageUrl 
+            })
+        });
+        const result = await res.json();
+        
+        if (res.ok && result.status === 'success') {
+            showAdminToast("Lưu cấu hình Postcard thành công!");
+            btn.innerHTML = '<i class="fa-solid fa-check"></i> Đã lưu';
+        } else {
+            showAdminToast("Lỗi máy chủ!", "error");
+        }
+    } catch (error) {
+        showAdminToast("Lỗi kết nối mạng!", "error");
+    } finally {
+        setTimeout(() => { btn.innerHTML = originalHTML; btn.disabled = false; }, 2000);
     }
 }
 
 /* ========================================================================= */
 /* HỆ THỐNG KÉO THẢ ẢNH BẰNG 4 CHẤM TRÒN (DRAG TO RESIZE)                    */
 /* ========================================================================= */
-
 /* ========================================================================= */
 /* HỆ THỐNG KÉO THẢ ẢNH BẰNG 4 CHẤM TRÒN (DRAG TO RESIZE)                    */
 /* ========================================================================= */
@@ -915,90 +1124,3 @@ function stopDragResize() {
     document.removeEventListener('mousemove', doDragResize);
     document.removeEventListener('mouseup', stopDragResize);
 }
-
-/* ==========================================
-   5. CUSTOM MODAL (TẠO MỚI/SỬA CHƯƠNG/BÀI HỌC)
-========================================== */
-let currentModalMode = ''; 
-let targetChapterIdForLesson = null; 
-let editTargetId = null; // Biến mới để lưu ID chương đang sửa
-
-function openModal(mode, chapterId = null, chapterName = '', orderNum = '') {
-    currentModalMode = mode;
-    targetChapterIdForLesson = chapterId;
-    editTargetId = chapterId; // Lưu ID để sửa
-
-    const modal = document.getElementById('actionModal');
-    
-    // Nếu là chế độ 'edit_chapter', điền sẵn tên và số thứ tự cũ vào ô nhập
-    if (mode === 'edit_chapter') {
-        document.getElementById('modalInputNumber').value = orderNum;
-        document.getElementById('modalInputName').value = chapterName;
-        document.getElementById('modalTitle').innerText = 'Sửa Chương';
-        document.getElementById('modalDesc').innerText = 'Cập nhật thông tin lộ trình.';
-    } else {
-        // Chế độ tạo mới: Xóa trống ô nhập
-        document.getElementById('modalInputNumber').value = '';
-        document.getElementById('modalInputName').value = '';
-        
-        if (mode === 'chapter') {
-            document.getElementById('modalTitle').innerText = 'Tạo Chương Mới';
-            document.getElementById('modalDesc').innerText = 'Nhập thông tin lộ trình.';
-        } else {
-            document.getElementById('modalTitle').innerText = 'Tạo Bài Học Mới';
-            document.getElementById('modalDesc').innerText = `Thuộc: ${chapterName}`;
-        }
-    }
-    
-    modal.classList.add('show');
-}
-
-function closeModal() { document.getElementById('actionModal').classList.remove('show'); }
-function createNewChapter() { openModal('chapter'); }
-function createNewLesson(event, chapterId, chapterName) {
-    event.stopPropagation();
-    openModal('lesson', chapterId, chapterName);
-}
-
-// Hàm mới: Bắt sự kiện khi bấm nút Cây bút
-function editChapterName(event, chapterId, chapterName, orderNum) {
-    event.stopPropagation();
-    openModal('edit_chapter', chapterId, chapterName, orderNum);
-}
-
-async function submitModal() {
-    const inputNum = document.getElementById('modalInputNumber').value;
-    const inputName = document.getElementById('modalInputName').value.trim();
-    if (!inputNum || !inputName) return showAdminToast("Vui lòng điền đủ thông tin!", "error");
-
-    const btnSubmit = document.getElementById('btnModalSubmit');
-    btnSubmit.innerHTML = 'Đang xử lý...'; btnSubmit.disabled = true;
-
-    try {
-        if (currentModalMode === 'chapter') {
-            await fetch(`${API_BASE_URL}/chapters`, {
-                method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name: inputName, order_num: parseInt(inputNum) })
-            });
-            showAdminToast("Tạo Chương mới thành công!");
-            
-        } else if (currentModalMode === 'edit_chapter') {
-            // GỌI API SỬA CHƯƠNG (PHƯƠNG THỨC PUT)
-            await fetch(`${API_BASE_URL}/chapters/${editTargetId}`, {
-                method: 'PUT', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name: inputName, order_num: parseInt(inputNum) })
-            });
-            showAdminToast("Đã cập nhật thông tin Chương!");
-            
-        } else {
-            await fetch(`${API_BASE_URL}/lessons`, {
-                method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ chapter_id: targetChapterIdForLesson, title: inputName, order_num: parseInt(inputNum) })
-            });
-            showAdminToast("Tạo Bài học mới thành công!");
-        }
-        closeModal(); loadRoadmapTree(); // Cập nhật lại danh sách cột trái
-    } catch (e) { showAdminToast("Lỗi kết nối API!", "error"); } 
-    finally { btnSubmit.innerHTML = 'Xác Nhận'; btnSubmit.disabled = false; }
-}
-
