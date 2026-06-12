@@ -788,6 +788,10 @@ function adminLogout() {
 /* HỆ THỐNG KÉO THẢ ẢNH BẰNG 4 CHẤM TRÒN (DRAG TO RESIZE)                    */
 /* ========================================================================= */
 
+/* ========================================================================= */
+/* HỆ THỐNG KÉO THẢ ẢNH BẰNG 4 CHẤM TRÒN (DRAG TO RESIZE)                    */
+/* ========================================================================= */
+
 let activeResizingImage = null;
 let resizerOverlay = null;
 let isDraggingResizer = false;
@@ -835,12 +839,6 @@ function initEditorClickListener() {
             updateResizerOverlayPosition();
         } else if (!e.target.classList.contains('resizer-dot') && e.target.id !== 'imgResizerOverlay') {
             hideResizerOverlay();
-        }
-    });
-
-    editor.addEventListener('dblclick', (e) => {
-        if (e.target.tagName === 'IMG') {
-            openCropModal(e.target);
         }
     });
 
