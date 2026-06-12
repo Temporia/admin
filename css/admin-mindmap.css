@@ -27,7 +27,9 @@
 /* CANVAS VÔ CỰC */
 .mindmap-canvas {
     position: absolute; transform-origin: 0 0;
-    width: 10000px; height: 20000px; 
+    width: 10000px; 
+    min-height: 20000px;
+    height: max-content; /* 🌟 CHÌA KHÓA: Tự động dài ra theo số lượng nhánh con */
     top: 0; left: 0; 
     display: flex; justify-content: center;
     will-change: transform; 
@@ -36,7 +38,7 @@
 /* TRỤC THỜI GIAN VÔ TẬN - ĐỘ RỘNG CHUẨN 6PX */
 .timeline-trunk {
     position: absolute; width: 6px;
-    background: linear-gradient(to bottom, #dc2626, #f59e0b, #3b82f6, #dc2626);
+    background: #dc2626; /* Chuyển về màu đỏ trơn, vì nếu dùng dải màu gradient kéo dài vô tận sẽ bị giãn hình rất xấu */
     height: 100%; left: 50%; transform: translateX(-50%);
     border-radius: 10px; z-index: 1;
 }
@@ -49,11 +51,12 @@
 
 /* VÙNG CHỨA CÁC NHÁNH - SỬ DỤNG FLEX COLUMN */
 .mindmap-nodes-container {
-    position: absolute; top: 0; left: 0; 
-    width: 100%; height: 100%; z-index: 10;
+    position: relative; /* 🌟 Chuyển từ absolute sang relative để các thẻ đẩy Canvas giãn ra */
+    width: 100%; z-index: 10;
     display: flex; flex-direction: column;
-    padding-top: 10000px; /* Canh giữa 20000px */
-    gap: 70px; /* Khoảng cách dọc giữa các Kỷ nguyên */
+    padding-top: 10000px; /* Giữ nguyên mốc bắt đầu */
+    padding-bottom: 3000px; /* 🌟 Thêm dư 3000px ở dưới đáy để trục đỏ luôn thò ra dài hơn nhánh cuối cùng */
+    gap: 70px;
 }
 
 /* KHUNG BỌC GRID CHO MỖI HÀNG KỶ NGUYÊN (CHÌA KHÓA BẤT BẠI) */
