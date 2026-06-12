@@ -243,6 +243,7 @@ async function loadRoadmapTree() {
                         <span>${chapter.name}</span>
                         <div style="margin-left: auto; display: flex; gap: 5px;">
                             <button class="btn-add-lesson" onclick="createNewLesson(event, ${chapter.id}, '${chapter.name}')" title="Thêm bài"><i class="fa-solid fa-plus"></i></button>
+                            <button class="btn-add-lesson" style="color:#f59e0b;" onclick="editChapterName(event, ${chapter.id}, '${chapter.name}', ${chapter.order_num})" title="Sửa tên chương"><i class="fa-solid fa-pen"></i></button>
                             <button class="btn-add-lesson" style="color:#dc2626;" onclick="deleteChapter(event, ${chapter.id})" title="Xóa chương"><i class="fa-solid fa-trash"></i></button>
                         </div>
                     </div>
@@ -782,3 +783,224 @@ function adminLogout() {
         window.location.href = 'index.html';
     }
 }
+
+/* ========================================================================= */
+/* HỆ THỐNG KÉO THẢ ẢNH BẰNG 4 CHẤM TRÒN (DRAG TO RESIZE)                    */
+/* ========================================================================= */
+
+let activeResizingImage = null;
+let resizerOverlay = null;
+let isDraggingResizer = false;
+let startX, startY, startWidth, startHeight, currentDot;
+
+// 1. Tạo Overlay 4 góc (Có cơ chế tự phục hồi)
+function createResizerOverlay() {
+    let overlay = document.getElementById('imgResizerOverlay');
+    
+    if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.id = 'imgResizerOverlay';
+        overlay.className = 'img-resizer-overlay';
+        
+        overlay.addEventListener('click', (e) => e.stopPropagation());
+        
+        const positions = ['top-left', 'top-right', 'bottom-left', 'bottom-right'];
+        positions.forEach(pos => {
+            const dot = document.createElement('div');
+            dot.className = `resizer-dot ${pos}`;
+            dot.dataset.position = pos;
+            dot.addEventListener('mousedown', initDragResize);
+            overlay.appendChild(dot);
+        });
+    }
+    
+    const editor = document.getElementById('mainContentEditor');
+    if (!editor.contains(overlay)) {
+        editor.appendChild(overlay);
+    }
+    resizerOverlay = overlay;
+}
+
+// 2. Bắt sự kiện Click vào Editor
+function initEditorClickListener() {
+    const editor = document.getElementById('mainContentEditor');
+    
+    editor.addEventListener('click', (e) => {
+        if (e.target.classList.contains('geo-keyword')) activateGeoKeyword(e.target);
+        if (e.target.classList.contains('char-keyword')) activateCharKeyword(e.target);
+        
+        if (e.target.tagName === 'IMG') {
+            createResizerOverlay(); 
+            activeResizingImage = e.target;
+            updateResizerOverlayPosition();
+        } else if (!e.target.classList.contains('resizer-dot') && e.target.id !== 'imgResizerOverlay') {
+            hideResizerOverlay();
+        }
+    });
+
+    editor.addEventListener('dblclick', (e) => {
+        if (e.target.tagName === 'IMG') {
+            openCropModal(e.target);
+        }
+    });
+
+    editor.addEventListener('input', updateResizerOverlayPosition);
+    editor.addEventListener('scroll', updateResizerOverlayPosition);
+}
+
+// 3. Tính toán vị trí và ốp khung lưới lên tấm ảnh
+function updateResizerOverlayPosition() {
+    if (!activeResizingImage || !resizerOverlay) return;
+    
+    const editor = document.getElementById('mainContentEditor');
+    const editorRect = editor.getBoundingClientRect();
+    const imgRect = activeResizingImage.getBoundingClientRect();
+    
+    const top = imgRect.top - editorRect.top + editor.scrollTop;
+    const left = imgRect.left - editorRect.left + editor.scrollLeft;
+    
+    resizerOverlay.style.top = `${top}px`;
+    resizerOverlay.style.left = `${left}px`;
+    resizerOverlay.style.width = `${imgRect.width}px`;
+    resizerOverlay.style.height = `${imgRect.height}px`;
+    resizerOverlay.style.display = 'block';
+}
+
+function hideResizerOverlay() {
+    if (resizerOverlay) resizerOverlay.style.display = 'none';
+    activeResizingImage = null;
+}
+
+// 4. Thuật toán xử lý chuột khi nắm kéo
+function initDragResize(e) {
+    e.preventDefault(); 
+    isDraggingResizer = true;
+    currentDot = e.target.dataset.position;
+    
+    startX = e.clientX;
+    startY = e.clientY;
+    startWidth = activeResizingImage.getBoundingClientRect().width;
+    
+    document.addEventListener('mousemove', doDragResize);
+    document.addEventListener('mouseup', stopDragResize);
+}
+
+function doDragResize(e) {
+    if (!isDraggingResizer || !activeResizingImage) return;
+    
+    let dx = e.clientX - startX;
+    let dy = e.clientY - startY;
+    
+    let distanceX = currentDot.includes('right') ? dx : -dx;
+    let distanceY = currentDot.includes('bottom') ? dy : -dy;
+    
+    let widthChange = Math.abs(distanceX) > Math.abs(distanceY) ? distanceX : distanceY;
+
+    const imgStyle = window.getComputedStyle(activeResizingImage);
+    const isCentered = (imgStyle.marginLeft === 'auto' && imgStyle.marginRight === 'auto') || activeResizingImage.parentElement.style.textAlign === 'center';
+    
+    if (isCentered) {
+        widthChange = widthChange * 2; 
+    }
+
+    let newWidth = startWidth + widthChange;
+    
+    if (newWidth > 50) {
+        activeResizingImage.style.width = `${newWidth}px`;
+        activeResizingImage.style.height = 'auto'; 
+        updateResizerOverlayPosition();
+    }
+}
+
+function stopDragResize() {
+    isDraggingResizer = false;
+    document.removeEventListener('mousemove', doDragResize);
+    document.removeEventListener('mouseup', stopDragResize);
+}
+
+/* ==========================================
+   5. CUSTOM MODAL (TẠO MỚI/SỬA CHƯƠNG/BÀI HỌC)
+========================================== */
+let currentModalMode = ''; 
+let targetChapterIdForLesson = null; 
+let editTargetId = null; // Biến mới để lưu ID chương đang sửa
+
+function openModal(mode, chapterId = null, chapterName = '', orderNum = '') {
+    currentModalMode = mode;
+    targetChapterIdForLesson = chapterId;
+    editTargetId = chapterId; // Lưu ID để sửa
+
+    const modal = document.getElementById('actionModal');
+    
+    // Nếu là chế độ 'edit_chapter', điền sẵn tên và số thứ tự cũ vào ô nhập
+    if (mode === 'edit_chapter') {
+        document.getElementById('modalInputNumber').value = orderNum;
+        document.getElementById('modalInputName').value = chapterName;
+        document.getElementById('modalTitle').innerText = 'Sửa Chương';
+        document.getElementById('modalDesc').innerText = 'Cập nhật thông tin lộ trình.';
+    } else {
+        // Chế độ tạo mới: Xóa trống ô nhập
+        document.getElementById('modalInputNumber').value = '';
+        document.getElementById('modalInputName').value = '';
+        
+        if (mode === 'chapter') {
+            document.getElementById('modalTitle').innerText = 'Tạo Chương Mới';
+            document.getElementById('modalDesc').innerText = 'Nhập thông tin lộ trình.';
+        } else {
+            document.getElementById('modalTitle').innerText = 'Tạo Bài Học Mới';
+            document.getElementById('modalDesc').innerText = `Thuộc: ${chapterName}`;
+        }
+    }
+    
+    modal.classList.add('show');
+}
+
+function closeModal() { document.getElementById('actionModal').classList.remove('show'); }
+function createNewChapter() { openModal('chapter'); }
+function createNewLesson(event, chapterId, chapterName) {
+    event.stopPropagation();
+    openModal('lesson', chapterId, chapterName);
+}
+
+// Hàm mới: Bắt sự kiện khi bấm nút Cây bút
+function editChapterName(event, chapterId, chapterName, orderNum) {
+    event.stopPropagation();
+    openModal('edit_chapter', chapterId, chapterName, orderNum);
+}
+
+async function submitModal() {
+    const inputNum = document.getElementById('modalInputNumber').value;
+    const inputName = document.getElementById('modalInputName').value.trim();
+    if (!inputNum || !inputName) return showAdminToast("Vui lòng điền đủ thông tin!", "error");
+
+    const btnSubmit = document.getElementById('btnModalSubmit');
+    btnSubmit.innerHTML = 'Đang xử lý...'; btnSubmit.disabled = true;
+
+    try {
+        if (currentModalMode === 'chapter') {
+            await fetch(`${API_BASE_URL}/chapters`, {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: inputName, order_num: parseInt(inputNum) })
+            });
+            showAdminToast("Tạo Chương mới thành công!");
+            
+        } else if (currentModalMode === 'edit_chapter') {
+            // GỌI API SỬA CHƯƠNG (PHƯƠNG THỨC PUT)
+            await fetch(`${API_BASE_URL}/chapters/${editTargetId}`, {
+                method: 'PUT', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: inputName, order_num: parseInt(inputNum) })
+            });
+            showAdminToast("Đã cập nhật thông tin Chương!");
+            
+        } else {
+            await fetch(`${API_BASE_URL}/lessons`, {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ chapter_id: targetChapterIdForLesson, title: inputName, order_num: parseInt(inputNum) })
+            });
+            showAdminToast("Tạo Bài học mới thành công!");
+        }
+        closeModal(); loadRoadmapTree(); // Cập nhật lại danh sách cột trái
+    } catch (e) { showAdminToast("Lỗi kết nối API!", "error"); } 
+    finally { btnSubmit.innerHTML = 'Xác Nhận'; btnSubmit.disabled = false; }
+}
+
