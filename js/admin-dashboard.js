@@ -130,19 +130,18 @@ function toggleChapter(element) {
    3. THƯ VIỆN HUY CHƯƠNG CỤC BỘ (MULTI-SELECT)
 ========================================== */
 const MEDAL_LIBRARY = [
-    { name: 'Kinh Dương Vương', url: 'hinh nhân vật/KDVx.png' },
-    { name: 'Lạc Long Quân', url: 'hinh nhân vật/LLQ.png' },
-    { name: 'Hai Bà Trưng', url: 'hinh nhân vật/HBT.png' },
-    { name: 'Lý Bí', url: 'hinh nhân vật/LyBi.png' },
-    { name: 'Ngô Quyền', url: 'hinh nhân vật/NgoQuyen.png' },
-    { name: 'Đinh Tiên Hoàng', url: 'hinh nhân vật/DinhTienHoang.png' },
-    { name: 'Lê Hoàn', url: 'hinh nhân vật/LeHoan.png' },
-    { name: 'Lý Thái Tổ', url: 'hinh nhân vật/LyThaiTo.png' },
-    { name: 'Trần Hưng Đạo', url: 'hinh nhân vật/TranHungDao.png' },
+  { name: 'Kinh Dương Vương', url: 'hinh nhân vật/KDVx.png' },
+    { name: 'Lạc Long Quân', url: 'hinh nhân vật/LLQx.png' },
+    { name: 'Hai Bà Trưng', url: 'hinh nhân vật/HBTx.png' },
+    { name: 'Lý Bí', url: 'hinh nhân vật/LBx.png' },
+    { name: 'An Dương Vương', url: 'hinh nhân vật/ADVx.png' },
+    { name: 'Mai Thúc Loan', url: 'hinh nhân vật/MTLx.png' },
+    { name: 'Ngô Quyền', url: 'hinh nhân vật/NQx.png' },
+    { name: 'Khúc Thừa Dụ', url: 'hinh nhân vật/KTDx.png' },
+    { name: 'Dạ Trạch Vương', url: 'hinh nhân vật/DTVx.png' },
     { name: 'Lê Lợi', url: 'hinh nhân vật/LeLoi.png' },
     { name: 'Quang Trung', url: 'hinh nhân vật/QuangTrung.png' },
-    { name: 'Võ Nguyên Giáp', url: 'hinh nhân vật/VoNguyenGiap.png' },
-    { name: 'Chiến Thắng', url: 'hinh nhân vật/ChienThang.png' }
+    { name: 'Phùng Hưng', url: 'hinh nhân vật/PXx.png' },
 ];
 
 function renderSelectedMedals() {
@@ -496,7 +495,10 @@ function initAdminMap() {
         syncMapData(); 
     });
 
-    adminMapInstance.on('pm:remove', syncMapData);
+   adminMapInstance.on('pm:remove', (e) => {
+        mapFeatureGroup.removeLayer(e.layer); 
+        syncMapData(); 
+    });
     adminMapInstance.on('pm:update', syncMapData);
 }
 
@@ -629,10 +631,7 @@ window.saveMapSettings = function() {
         showAdminToast("Vui lòng chọn một chữ màu vàng (Geo-Keyword) trước!", "error");
         return;
     }
-    if (mapFeatureGroup.getLayers().length === 0) {
-        showAdminToast("Vui lòng chấm ít nhất 1 điểm hoặc vẽ 1 vùng trên bản đồ!", "error");
-        return;
-    }
+   
     
     syncMapData();
     showAdminToast("Đã chốt xong tọa độ và mô tả cho cứ điểm này!");
