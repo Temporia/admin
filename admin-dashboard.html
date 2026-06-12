@@ -14,8 +14,24 @@
     <link rel="stylesheet" href="css/admin-dashboard.css">
     <link rel="stylesheet" href="css/admin-mindmap.css">
     <link rel="stylesheet" href="css/admin-quiz.css">
+    <link rel="stylesheet" href="css/admin-postcard.css">
     <!-- Bổ sung đoạn CSS này vào trong thẻ <head> của admin-dashboard.html -->
 <style>
+    /* Tìm class editor-panel và thêm overflow-y: auto */
+.editor-panel { 
+    flex: 1; 
+    border-right: 1px solid var(--border-light); 
+    background: #f9fafb;
+    overflow-y: auto; /* DÒNG NÀY RẤT QUAN TRỌNG: cho phép cuộn bên trong khung này */
+    height: 100%;     /* Đảm bảo nó chiếm đủ chiều cao */
+}
+
+/* Đảm bảo editor-body không bị khóa chiều cao */
+.editor-body { 
+    max-width: 900px; 
+    margin: 20px auto; /* Thêm chút khoảng cách trên dưới */
+    padding-bottom: 50px; /* Thêm khoảng trống để không bị dính sát đáy */
+}
     .module-switcher {
         position: relative; /* Bắt buộc để làm khung chuẩn */
         display: flex !important;
@@ -56,7 +72,7 @@
         color: #b91c1c;
     }
 </style>
-
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
 </head>
 <body class="temporia-dashboard">
 
@@ -76,6 +92,9 @@
             </div>
             <div class="module-btn" onclick="switchModule('quiz', this)">
                 <i class="fa-solid fa-clipboard-question"></i> Quiz
+            </div>
+            <div class="module-btn" onclick="switchModule('postcard', this)">
+                <i class="fa-solid fa-clipboard-question"></i> Postcard
             </div>
         </div>
 
@@ -328,6 +347,77 @@
 
             </div>
         </div>
+       <div id="postcardModule" class="module-section" style="display: none; width: 100%; height: 100%;">
+            <aside class="sidebar-tree">
+                <div class="tree-header">
+                    <h3>Cấu trúc Lộ trình</h3>
+                </div>
+                <div class="tree-content" id="pcLessonList">
+                    <div style="padding: 20px; text-align: center; color: #86868b;"><i class="fa-solid fa-spinner fa-spin"></i> Đang tải...</div>
+                </div>
+            </aside>
+
+            <main class="editor-panel">
+                <div class="editor-header">
+                    <div class="breadcrumbs" id="pcBreadcrumb"><i class="fa-solid fa-photo-film"></i> Chưa chọn bài học</div>
+                    <div class="header-actions">
+                        <button class="apple-btn-primary" id="btnSavePostcard" onclick="savePostcardConfig()" disabled>
+                            <i class="fa-solid fa-cloud-arrow-up"></i> Lưu Cấu Hình
+                        </button>
+                    </div>
+                </div>
+
+                <div class="editor-body" id="pcEditorContent" style="display: none;">
+                    
+                    <div class="metadata-grid" style="grid-template-columns: 1fr 1fr; gap: 20px; display: flex; flex-direction: column;">
+                        
+                        <div class="input-group full-width">
+                            <label><i class="fa-solid fa-music" style="color: #b91c1c;"></i> Chọn File MP3 / Video có trong dự án</label>
+                            <div style="display: flex; gap: 10px;">
+                                <input type="file" id="pcFileSelector" accept=".mp3, .mp4" class="apple-input" style="flex: 1;" onchange="handlePCFileSelect(this)">
+                              <input type="text" id="pcMediaFilename" class="apple-input" style="flex: 1;" placeholder="Chọn file hoặc dán trực tiếp link (URL) nhạc/video vào đây..." oninput="triggerPCMedia(this.value)">
+                            </div>
+                        </div>
+
+                        <div class="input-group full-width">
+                            <label><i class="fa-solid fa-image" style="color: #3b82f6;"></i> Link Ảnh Minh Họa (Dán link vào để xem trước)</label>
+                            <input type="text" id="pcImageUrl" class="apple-input" placeholder="VD: https://domain.com/hinh-anh.jpg" oninput="triggerPCImage(this.value)">
+                        </div>
+
+                    </div>
+
+                    <div class="input-group full-width" style="margin-top: 25px; display: flex; gap: 20px;">
+                        <div style="flex: 1;">
+                            <label>Khung xem trước Ảnh</label>
+                            <div id="pcImagePreviewBox" style="background: #f1f5f9; border-radius: 12px; height: 220px; display: flex; align-items: center; justify-content: center; overflow: hidden; border: 1px dashed #cbd5e1; box-shadow: 0 4px 15px rgba(0,0,0,0.05);">
+                                <span id="pcImagePlaceholder" style="color: #94a3b8;"><i class="fa-regular fa-image" style="font-size: 2rem;"></i></span>
+                                <img id="pcImagePreview" src="" style="display: none; width: 100%; height: 100%; object-fit: cover;">
+                            </div>
+                        </div>
+                        
+                        <div style="flex: 1;">
+                            <label>Khung nghe thử Âm thanh/Video</label>
+                            <div id="pcMediaPreviewBox" style="background: #0f172a; border-radius: 12px; height: 220px; display: flex; align-items: center; justify-content: center; overflow: hidden; padding: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.15);">
+                                <audio id="pcAudioPlayer" controls style="width: 100%; display: none;"></audio>
+                                <video id="pcVideoPlayer" controls style="width: 100%; max-height: 100%; display: none;"></video>
+                                <span id="pcMediaPlaceholder" style="color: #64748b;"><i class="fa-solid fa-headphones" style="font-size: 2rem;"></i></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr class="divider">
+
+                    <div class="input-group full-width">
+                        <label>Tóm tắt Nội dung (Đồng bộ tự động từ Lộ trình)</label>
+                        <textarea id="pcSyncedContent" class="apple-input textarea-recap" readonly style="background: #f8fafc; color: #475569; cursor: not-allowed;"></textarea>
+                    </div>
+                </div>
+                <div id="pcEmptyState" style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #94a3b8; height: 100%;">
+                    <i class="fa-solid fa-photo-film" style="font-size: 4rem; margin-bottom: 15px; opacity: 0.5;"></i>
+                    <h3>Vui lòng chọn bài học từ danh sách</h3>
+                </div>
+            </main>
+        </div>
 
     </div>
 
@@ -489,33 +579,42 @@
     });
 
     // Hàm chuyển đổi các Tab
-    window.switchModule = function(module, btnElement) {
-        document.querySelectorAll('.module-btn').forEach(btn => btn.classList.remove('active'));
-        btnElement.classList.add('active');
-        updateSliderPosition(btnElement);
+  window.switchModule = function(module, btnElement) {
+    // Đổi màu chữ active nút bấm
+    document.querySelectorAll('.module-btn').forEach(btn => btn.classList.remove('active'));
+    btnElement.classList.add('active');
 
-        // ĐÂY LÀ ĐOẠN VÁ LỖI VỠ GIAO DIỆN: Phải ẩn tất cả 3 tab đi trước khi bật 1 tab lên
-        document.getElementById('roadmapModule').style.display = 'none';
-        document.getElementById('mindmapModule').style.display = 'none';
-        document.getElementById('quizModule').style.display = 'none'; 
+    // Kích hoạt hiệu ứng trượt nảy
+    updateSliderPosition(btnElement);
 
-        if (module === 'roadmap') {
-            document.getElementById('roadmapModule').style.display = 'flex';
-            if (typeof adminMapInstance !== 'undefined' && adminMapInstance) adminMapInstance.invalidateSize();
-        }  else if (module === 'mindmap') {
-            document.getElementById('mindmapModule').style.display = 'flex';
-            if (typeof resetZoomMindmap === 'function') resetZoomMindmap();
-        } else if (module === 'quiz') {
-            document.getElementById('quizModule').style.display = 'flex';
-            
-            // ĐÂY LÀ ĐOẠN VÁ LỖI: Tự động kích hoạt load dữ liệu lần đầu tiên bấm vào Tab
-            if (!window.isQuizInitialized) {
-                if (typeof switchQuizMode === 'function') switchQuizMode('lesson');
-                window.isQuizInitialized = true;
-            }
+    // ẨN TẤT CẢ CÁC MODULE TAB TRƯỚC
+    document.getElementById('roadmapModule').style.display = 'none';
+    document.getElementById('mindmapModule').style.display = 'none';
+    document.getElementById('quizModule').style.display = 'none';
+    document.getElementById('postcardModule').style.display = 'none'; // Thêm dòng này
+
+    // BẬT MODULE ĐƯỢC CHỌN
+    if (module === 'roadmap') {
+        document.getElementById('roadmapModule').style.display = 'flex';
+        if (typeof adminMapInstance !== 'undefined' && adminMapInstance) adminMapInstance.invalidateSize();
+    } else if (module === 'mindmap') {
+        document.getElementById('mindmapModule').style.display = 'flex';
+        if (typeof resetZoomMindmap === 'function') resetZoomMindmap();
+    } else if (module === 'quiz') {
+        document.getElementById('quizModule').style.display = 'flex';
+        if (!window.isQuizInitialized) {
+            if (typeof switchQuizMode === 'function') switchQuizMode('lesson');
+            window.isQuizInitialized = true;
         }
+    } else if (module === 'postcard') {
+        document.getElementById('postcardModule').style.display = 'flex';
+        // Gọi hàm kích hoạt tải danh sách bài học từ lộ trình
+        if (typeof initPostcardModule === 'function') initPostcardModule();
     }
-</script>
+}
+    </script>
     <script src="js/admin-quiz.js"></script>
+    <script src="js/admin-postcard.js"></script>
+ 
 </body>
 </html>
